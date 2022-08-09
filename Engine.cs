@@ -1,3 +1,4 @@
+using System.Text;
 
 namespace fpli {
     public static class Engine {
@@ -6,6 +7,7 @@ namespace fpli {
 		const string cachePath = ".cache/";
 		static Config _config = new Config();
 		static FPLData _fpl = new FPLData(cachePath, api);
+		static StringBuilder _sb = new StringBuilder();
 		
 		public static async Task Execute(Config config) {
 			
@@ -27,9 +29,11 @@ namespace fpli {
 		private static void _executeMiniLeagueAnalysis() {
 			_reportChipUsage();
 			_reportCaptaincy();
+			_reportTransfers();
 		}
 
-		public static void _reportChipUsage() {
+
+		static void _reportChipUsage() {
 			
 			int totalChipsPlayed = 0;
 			var list = _fpl.GetStandings.ChipUsage.OrderByDescending(v => v.Value.Count);
@@ -66,17 +70,41 @@ namespace fpli {
 			}
 		}
 
-		public static void _reportCaptaincy() {
+
+		static void _reportCaptaincy() {
 			Console.WriteLine("\nCaptaincy\n");
 
 			var list = _fpl.GetStandings.Captaincy.OrderByDescending(v => v.Value.Count);
-			int totalManagers = _fpl.GetStandings.Captaincy.Count;
+			int totalManagers = _fpl.GetManagersInScope.Count;
 
 			foreach(var kv in list) {
 
+				_sb.Length = 0;
 				Element captain = _fpl.GetBootstrap.GetElement(kv.Key);
-				Console.WriteLine($"{kv.Value.Count, 4} {captain.web_name}");
+				_sb.Append($"{kv.Value.Count, 4} {captain.web_name}");
+
+				if (_config.incManagersInCaptaincy) {
+					string glue = ": ";
+
+					kv.Value.ForEach(entryId => {
+						Manager manager = _fpl.GetManager(entryId);
+						Result result = _fpl.GetStandings.standings.results.Find(r => r.entry == entryId);
+						_sb.Append($"{glue}{result.player_name}");
+						glue = ", ";
+					});
+					
+					_sb.Append(".");
+				}
+
+				Console.WriteLine(_sb.ToString());
 			}
-		}		
+		}	
+
+
+		static void _reportTransfers() {	
+			// Transfer summary: Average hits, total rolls, total lost transfers
+			// By player in/out
+			// By manager, inc lost transfers, ordered by net points
+		}
 	}
 }

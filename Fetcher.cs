@@ -8,12 +8,12 @@ namespace fpli {
         
         public static float Callrate { get; set; } = 1f;   // Maximum calls per second
 
-		public static async Task<T> FetchAndDeserialise<T>(string filename, string endpoint, int cacheExpiry) {
-			string text = await Fetcher.Fetch(filename, endpoint);
+		public static async Task<T> FetchAndDeserialise<T>(string filename, string endpoint, int cacheExpiryInSeconds) {
+			string text = await Fetcher.Fetch(filename, endpoint, cacheExpiryInSeconds);
 			return JsonSerializer.Deserialize<T>(text, Utils.JSONConfig);
 		}
 
-		public static async Task<string> Fetch(string filename, string uri) {
+		public static async Task<string> Fetch(string filename, string uri, int cacheExpiryInSeconds) {
 
             // Convert uri to a filename
             string json = "";
@@ -23,16 +23,24 @@ namespace fpli {
             // If the file exists, and isn't past its expiry then we can try loading a deserialising it
             if (File.Exists(filename)) {
 
-                Console.Write("found in cache, ");
-                json = File.ReadAllText(filename);
+                // Check age - has it expired?
+                DateTime lastWriteTime = File.GetLastWriteTimeUtc(filename);
+                DateTime expiry = lastWriteTime.AddSeconds(cacheExpiryInSeconds);
 
-                // If the object isn't null then return it
-                if (json.Length >= 2) {
-                    Console.WriteLine("ok!");
-                    return json;
+                if (expiry < DateTime.UtcNow) {
+                    Console.Write("found in cache but expired, ");    
                 } else {
-                    Console.Write("file looks invalid, ");
-                }
+                    Console.Write("found in cache, ");
+                    json = File.ReadAllText(filename);
+
+                    // If the object isn't null then return it
+                    if (json.Length >= 2) {
+                        Console.WriteLine("ok!");
+                        return json;
+                    } else {
+                        Console.Write("file looks invalid, ");
+                    }
+                }   
             }
 
             // Either the file doesn't exist, or exists but has expired or didn't deserialize correctly,

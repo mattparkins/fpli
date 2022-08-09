@@ -15,8 +15,8 @@ namespace fpli {
 		}
 
 		public async Task Fetch(string cachePath, string api, int GW) {
-			_picks = await Fetcher.FetchAndDeserialise<Picks>($"{cachePath}picks_{_entryId}_GW{GW}.json", $"{api}/entry/{_entryId}/event/{GW}/picks/", Utils.DaysAsSeconds(300));
-			_transfers = await Fetcher.FetchAndDeserialise<List<Transfer>>($"{cachePath}transfers_{_entryId}_GW{GW}.json", $"{api}/entry/{_entryId}/transfers/", Utils.DaysAsSeconds(300));
+			_picks = await Fetcher.FetchAndDeserialise<Picks>($"{cachePath}picks_{_entryId}_GW{GW}.json", $"{api}entry/{_entryId}/event/{GW}/picks/", Utils.DaysAsSeconds(300));
+			_transfers = await Fetcher.FetchAndDeserialise<List<Transfer>>($"{cachePath}transfers_{_entryId}_GW{GW}.json", $"{api}entry/{_entryId}/transfers/", Utils.DaysAsSeconds(300));
 
 			// pull out any shortcut data
 			_picks.picks.ForEach(p => {
