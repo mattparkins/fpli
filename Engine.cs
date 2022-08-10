@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Text;
 
 namespace fpli {
@@ -29,7 +30,10 @@ namespace fpli {
 		private static void _executeMiniLeagueAnalysis() {
 			_reportChipUsage();
 			_reportCaptaincy();
-			_reportTransfers();
+			_reportHits();
+
+			// Points on bench ?
+			// Transfer evaluation - should this be a post-week run ?
 		}
 
 
@@ -53,7 +57,7 @@ namespace fpli {
 
 			foreach(var kv in list) {
 				if (kv.Key != "none") {
-					Console.Write($"{kv.Value.Count, 4} {kv.Key}: ");
+					Console.Write($"{kv.Value.Count, 4} {kv.Key}: (");
 					string glue = "";
 					kv.Value.ForEach(entryId => {
 
@@ -65,7 +69,7 @@ namespace fpli {
 						Console.Write($"{glue}{result.player_name}");
 						glue = ", ";
 					});
-					Console.WriteLine(".");
+					Console.WriteLine(")");
 				}
 			}
 		}
@@ -100,11 +104,42 @@ namespace fpli {
 			}
 		}	
 
+		static void _reportHits() {
 
-		static void _reportTransfers() {	
-			// Transfer summary: Average hits, total rolls, total lost transfers
-			// By player in/out
-			// By manager, inc lost transfers, ordered by net points
+			var list = _fpl.GetManagersInScope.OrderByDescending(m => m.GetTransferCost);
+
+			int totalHitPoints = 0;
+			int largestHitPoints = list.First().GetTransferCost;
+			int largestHitCount = 0;
+			int noHitCount = 0;
+			int rollCount = 0;
+
+			foreach (var kv in list) {
+				totalHitPoints += kv.GetTransferCost;
+				largestHitCount += kv.GetTransferCost == largestHitPoints ? 1 : 0;
+				noHitCount += kv.GetTransferCost == 0 ? 1 : 0;
+				rollCount += kv.DidRoll ? 1 : 0;
+			}
+	
+			Console.WriteLine($"\nAverage hit: {totalHitPoints / (float) list.Count():0.00} pts");	
+
+			if (largestHitPoints != 0) {	
+				Console.Write($"Biggest hit: {largestHitPoints}pts (");
+				
+				string glue = "";
+				foreach (var kv in list) {
+					if (kv.GetTransferCost != largestHitPoints) {
+						break;
+					}
+
+					Result result = _fpl.GetStandings.standings.results.Find(r => r.entry == kv.GetEntryId);
+					Console.Write(glue + result.player_name);
+					glue = ", ";
+				}
+				Console.WriteLine(")");
+			}
+			Console.WriteLine($"No hits:     {noHitCount} players");
+			Console.WriteLine($"Rolled:      {rollCount} players");
 		}
 	}
 }

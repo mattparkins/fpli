@@ -18,8 +18,6 @@ namespace fpli {
             // Convert uri to a filename
             string json = "";
 
-            Console.Write($"Loading {filename,-40} ");
-
             // If the file exists, and isn't past its expiry then we can try loading a deserialising it
             if (File.Exists(filename)) {
 
@@ -27,19 +25,14 @@ namespace fpli {
                 DateTime lastWriteTime = File.GetLastWriteTimeUtc(filename);
                 DateTime expiry = lastWriteTime.AddSeconds(cacheExpiryInSeconds);
 
-                if (expiry < DateTime.UtcNow) {
-                    Console.Write("found in cache but expired, ");    
-                } else {
-                    Console.Write("found in cache, ");
+                if (expiry > DateTime.UtcNow) {
+                
                     json = File.ReadAllText(filename);
 
                     // If the object isn't null then return it
                     if (json.Length >= 2) {
-                        Console.WriteLine("ok!");
                         return json;
-                    } else {
-                        Console.Write("file looks invalid, ");
-                    }
+                    } 
                 }   
             }
 
@@ -50,9 +43,7 @@ namespace fpli {
 
                 DateTime now = DateTime.Now;
                 if (now < _nextFetchStamp) {
-                    TimeSpan delay = _nextFetchStamp - now;
-                    Console.Write($"awaiting, ");
-                    
+                    TimeSpan delay = _nextFetchStamp - now;                    
                     await Task.Delay((int) delay.TotalMilliseconds);
                 }
                 
@@ -61,7 +52,7 @@ namespace fpli {
             
             // Download file, store in cache and return the body
 
-            Console.Write($"fetching {uri}, ");
+            Console.WriteLine($"fetching {uri}, ");
 
             HttpRequestMessage request = new HttpRequestMessage {
                 Method = HttpMethod.Get,
@@ -75,9 +66,6 @@ namespace fpli {
                 HttpResponseMessage response = await _client.SendAsync(request);
                 response.EnsureSuccessStatusCode();
                 body = await response.Content.ReadAsStringAsync();
-
-                Console.WriteLine($"writing {body.Length} bytes");
-
                 await File.WriteAllTextAsync(filename, body);
                 return body;   
 

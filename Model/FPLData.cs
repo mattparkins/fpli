@@ -32,6 +32,8 @@ namespace fpli {
 
 
 		public async Task Load(Config config) {
+
+			Console.WriteLine("Reading & updating cache");
 			            
 			// Fetch Bootstrap, this will determine how we configure the cache for other items
 			_bootstrap = await Fetcher.FetchAndDeserialise<Bootstrap>(_cachePath+"bootstrap.json", _api+"bootstrap-static/", Utils.HoursAsSeconds(1));
