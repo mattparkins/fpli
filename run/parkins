@@ -1,0 +1,7 @@
+#!/bin/zsh
+if [ ! -f Program.cs ]; then
+    echo "Run from root folder!" >&2
+    exit 1
+fi
+echo "Running Parkins & Fernando Summary"
+dotnet run --leagueId 135928 --incManagersInCaptaincy
