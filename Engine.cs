@@ -6,7 +6,7 @@ namespace fpli {
 
 		const string api = "https://fantasy.premierleague.com/api/";
 		const string cachePath = ".cache/";
-		static Config _config = new Config();
+		static Config _config;
 		static FPLData _fpl = new FPLData(cachePath, api);
 		static StringBuilder _sb = new StringBuilder();
 		
