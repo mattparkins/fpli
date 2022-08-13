@@ -20,6 +20,8 @@ namespace fpli {
         public bool incManagersInCaptaincy  { get; private set; } = false;  // include managers in captaincy summary
 
         // Fixture analysis options
+        public int gameweek                 { get; private set; } = 0;      // Which gameweek to target
+        public int fixtureCount             { get; private set; } = 0;      // Number of fixtures to analyse
         public List<string> fixturePicks    { get; set;}                    // fixture analysis, which 
 
 
@@ -35,11 +37,11 @@ namespace fpli {
             Console.WriteLine(" --callrate <float, default 1.0>         maxiumum calls per second");
             
 			Console.WriteLine("\nLeague analysis options");
-			Console.WriteLine(" --maxManagers <int, default 50>     maxiumum number of managers to retrieve");
-            Console.WriteLine(" --incManagersInCaptaincy            include manager names in captaincy summary.");
+			Console.WriteLine(" --maxManagers <int, default 50>         maxiumum number of managers to retrieve");
+            Console.WriteLine(" --incManagersInCaptaincy                include manager names in captaincy summary.");
 
             Console.WriteLine("\nFixture analysis options");
-			Console.WriteLine(" --previousPicks <string>...         picks so far, one per gameweek ");
+			Console.WriteLine(" --previousPicks <string>...             picks so far, one per gameweek ");
 		}
         
 
@@ -63,6 +65,9 @@ namespace fpli {
 
             // Retrieve further settings
 			if (intent == Intent.ExecuteFixtureAnalysis) {
+                List<int> p = _retrieveVariableOptions<int>(args, "--executeFixtureAnalysis");
+                gameweek = (p.Count >= 1) ? p[0] : 0;
+                fixtureCount = (p.Count >= 2) ? p[1] : 0;
                 fixturePicks = _retrieveVariableOptions<string>(args, "--previousPicks");
             }
 		}
@@ -104,9 +109,8 @@ namespace fpli {
             foreach (string arg in args) {
                 
                 if (found) {
-                    
                     // We're traversing the found options, have we hit a new option?
-                    if (arg.Substring(0,2)=="--") {
+                    if (arg.Length > 2 && arg.Substring(0,2)=="--") {
                         break;
                     }
 
@@ -116,7 +120,7 @@ namespace fpli {
                     }
                 }
 
-                found = String.Equals(arg, option, StringComparison.OrdinalIgnoreCase);
+                found |= String.Equals(arg, option, StringComparison.OrdinalIgnoreCase);
             }
 
             return r;

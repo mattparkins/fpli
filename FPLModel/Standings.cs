@@ -53,17 +53,14 @@ namespace fpli {
         public Dictionary<int,List<int>> Captaincy { get; private set; } = new Dictionary<int, List<int>>();        // elementId, list of entryIds
         public Dictionary<string,List<int>> ChipUsage { get; private set; } = new Dictionary<string, List<int>>();  // chipType, list of entryIds
 
-        FPLData _fpl;
-
         public void CalculateLeagueStats(FPLData fpl) {
-            _fpl = fpl;
-            _calculateCaptaincy();
-            _calculateChipUsage();
+            _calculateCaptaincy(fpl);
+            _calculateChipUsage(fpl);
         }
 
-        private void _calculateCaptaincy() {
+        private void _calculateCaptaincy(FPLData fpl) {
             standings.results.ForEach(r => {
-                Manager manager = _fpl.GetManagersInScope.Find(m => m.GetEntryId == r.entry);
+                Manager manager = fpl.Managers[r.entry];
                 if (!Captaincy.ContainsKey(manager.GetCaptain)) {
                     Captaincy[manager.GetCaptain] = new List<int>();
                 }
@@ -71,9 +68,9 @@ namespace fpli {
             });
         }
 
-        private void _calculateChipUsage() {
+        private void _calculateChipUsage(FPLData fpl) {
             standings.results.ForEach(r => {
-                Manager manager = _fpl.GetManagersInScope.Find(m => m.GetEntryId == r.entry);
+                Manager manager = fpl.Managers[r.entry];
                 string chip = manager.GetChip ?? "none";
                 if (!ChipUsage.ContainsKey(chip)) {
                     ChipUsage[chip] = new List<int>();

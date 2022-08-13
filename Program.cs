@@ -15,17 +15,10 @@
 		static async Task Main(string[] args) {
 			Config config = new Config(args);
 			switch (config.intent) {
-				case Intent.ExecuteMiniLeagueAnalysis:	await _execute(config);               	break;
 				case Intent.DisplayVersion:         	_displayVersion();                    	break;
-				case Intent.DisplayHelp:        
-				default:                            	Config.displayHelp();					break;
+				case Intent.DisplayHelp:        		Config.displayHelp();					break;
+				default:                            	await Engine.Execute(config);    		break;
 			}
 		}
-
-		static async Task _execute(Config config) {
-			await Engine.Execute(config);
-		}
-
-		
 	}
 }
