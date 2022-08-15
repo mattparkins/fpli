@@ -1,11 +1,8 @@
-using System.Collections.Generic;
-using System.Text;
-
 namespace fpli {
     public static class Engine {
 
 		const string api = "https://fantasy.premierleague.com/api/";
-		const string cachePath = ".cache/";
+		const string cachePath = "data/.cache/";
 		static Config _config;
 		static FPLData _fpl = new FPLData(cachePath, api);
 		
