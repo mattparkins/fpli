@@ -1,6 +1,7 @@
-using System.Runtime.Serialization;
 namespace fpli {
 	public class FixtureAnalyser : Analyser {
+
+		public override bool RequiresHistory { get { return true; } }
 		
 		public FixtureAnalyser(FPLData fpl, Config config): base(fpl, config) {
 			if (_config.gameweek <= 0) {

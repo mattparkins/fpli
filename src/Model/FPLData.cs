@@ -8,17 +8,19 @@ namespace fpli {
 		public Dictionary<int, Manager> Managers			{ get; private set; } = new Dictionary<int, Manager>();			// entryid
 		public Dictionary<int, LeagueStandings> Standings	{ get; private set; } = new Dictionary<int, LeagueStandings>();	// leagueid
 		public Dictionary<int, List<Fixture>> Fixtures		{ get; private set; } = new Dictionary<int, List<Fixture>>();	// gameweek
+		public History History 								{ get; private set; } = new History();
 
+		readonly string _dataPath;
 		readonly string _cachePath;
 		readonly string _api;
 		
 		Config _config;
 
-		public FPLData(string cachePath, string api) {
-			_cachePath = cachePath;
+		public FPLData(string dataPath, string api) {
+			_cachePath = dataPath + ".cache/";
+			_dataPath = dataPath;
 			_api = api;
 		}
-
 
 		public void Init(Config config) {
 			_config = config;
@@ -31,8 +33,14 @@ namespace fpli {
 		}
 
 
-		public async Task PreFetch() {
-			Console.WriteLine("Reading & updating cache");
+		public async Task PreFetch(bool loadHistory) {
+
+			if (loadHistory) {
+				Console.WriteLine("Reading historic FPL data");
+				History.Load(_dataPath);
+			}
+
+			Console.WriteLine("Updating cache");
 			            
 			// Fetch Bootstrap, this will determine how we configure the cache for other items
 			Bootstrap = await Fetcher.FetchAndDeserialise<Bootstrap>(_cachePath+"bootstrap.json", _api+"bootstrap-static/", Utils.HoursAsSeconds(1));

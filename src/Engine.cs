@@ -2,7 +2,7 @@ namespace fpli {
     public static class Engine {
 
 		const string api = "https://fantasy.premierleague.com/api/";
-		const string cachePath = "data/.cache/";
+		const string cachePath = "data/";
 		static Config _config;
 		static FPLData _fpl = new FPLData(cachePath, api);
 		
@@ -17,7 +17,7 @@ namespace fpli {
 			Analyser analyser = Analyser.Factory(config.intent, _fpl, _config);
 
 			// Load
-			await _fpl.PreFetch();
+			await _fpl.PreFetch(analyser.RequiresHistory);
 			await analyser.PreFetch();
 
 			// Preprocess

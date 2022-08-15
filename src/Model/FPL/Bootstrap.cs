@@ -138,10 +138,6 @@ namespace fpli {
         public int league_points_h2h_lose { get; set; }
         public int league_points_h2h_draw { get; set; }
         public bool league_ko_first_instead_of_random { get; set; }
-        public string cup_start_event_id { get; set; }
-        public string cup_stop_event_id { get; set; }
-        public string cup_qualifying_method { get; set; }
-        public string cup_type { get; set; }
         public int squad_squadplay { get; set; }
         public int squad_squadsize { get; set; }
         public int squad_team_limit { get; set; }
