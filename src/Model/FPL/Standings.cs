@@ -58,6 +58,10 @@ namespace fpli {
             _calculateChipUsage(fpl);
         }
 
+        public Result GetEntry(int entryId) {
+            return standings.results.Find(r => r.entry == entryId);
+        }
+
         private void _calculateCaptaincy(FPLData fpl) {
             standings.results.ForEach(r => {
                 Manager manager = fpl.Managers[r.entry];

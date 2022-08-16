@@ -32,12 +32,12 @@ namespace fpli {
             return _regexAlphaNumeric.Replace(name, "_");
         }
 
-        public static int DaysAsSeconds(int days) {
-            return days * 24 * 60 * 60;
+        public static int DaysAsSeconds(float days) {
+            return (int) (days * 24 * 60 * 60);
         }
 
-        public static int HoursAsSeconds(int hours) {
-            return hours * 60 * 60;
+        public static int HoursAsSeconds(float hours) {
+            return (int) (hours * 60 * 60);
         }
 
         public static bool PathIsOutsideFolderStructure(string filePath) {

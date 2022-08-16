@@ -5,6 +5,7 @@ namespace fpli {
 
 		public Bootstrap Bootstrap 							{ get; private set; }
 		public EventStatus EventStatus 						{ get; private set; }
+		public Live Live									{ get; private set; }
 		public Dictionary<int, Manager> Managers			{ get; private set; } = new Dictionary<int, Manager>();			// entryid
 		public Dictionary<int, LeagueStandings> Standings	{ get; private set; } = new Dictionary<int, LeagueStandings>();	// leagueid
 		public Dictionary<int, List<Fixture>> Fixtures		{ get; private set; } = new Dictionary<int, List<Fixture>>();	// gameweek
@@ -13,6 +14,8 @@ namespace fpli {
 		readonly string _dataPath;
 		readonly string _cachePath;
 		readonly string _api;
+
+		public static FPLData Instance 						{ get; private set; }
 		
 		Config _config;
 
@@ -20,6 +23,7 @@ namespace fpli {
 			_cachePath = dataPath + ".cache/";
 			_dataPath = dataPath;
 			_api = api;
+			Instance = this;
 		}
 
 		public void Init(Config config) {
@@ -45,8 +49,10 @@ namespace fpli {
 			// Fetch Bootstrap, this will determine how we configure the cache for other items
 			Bootstrap = await Fetcher.FetchAndDeserialise<Bootstrap>(_cachePath+"bootstrap.json", _api+"bootstrap-static/", Utils.HoursAsSeconds(1));
 			EventStatus = await Fetcher.FetchAndDeserialise<EventStatus>(_cachePath+"event-status.json", _api+"event-status/", Utils.HoursAsSeconds(1));
+			
+			int gw = Bootstrap.GetCurrentGameweekId();
+			Live = await Fetcher.FetchAndDeserialise<Live>(_cachePath+"live_GW"+gw+".json", _api+"event/"+gw+"/live/", Utils.HoursAsSeconds(1));
 		}
-
 
 		public async Task LoadManager(int entryId) {
 			Manager manager = new Manager(entryId);
