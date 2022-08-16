@@ -228,7 +228,7 @@ namespace fpli {
 		// display it in inverse order
 
 		void _displayLine(TeamScoreEval[] line) {
-			Console.Write($"{line[0].eval:0.000} =");
+			Console.Write($"Depth {line.Length}, best {line[0].eval:0.000}:");
 			for (int i = line.Length -1; i >= 0; --i) {
 				string teamName = _fpl.Bootstrap.teams.Find(t => t.id == line[i].team).short_name;
 				Console.Write($"  {teamName} {line[i].eval:0.000}");
