@@ -37,6 +37,8 @@ namespace fpli {
 			AWAY = 1,
 		}
 
+		DateTime analysisStart;
+
 		int[] _minStrength = new int[2];
 		int[] _maxStrength = new int[2];
 		int[] _forcedMoves;
@@ -118,12 +120,16 @@ namespace fpli {
 			_calculateTeamStrengths();
 			_buildForcedMoves();
 
+			analysisStart = DateTime.UtcNow;
+
 			const int resetBoard = (1 << 21) -2; // 0x1FFFFE, 20 bits set, offset by 1
+			Int64 nodes = 0;
+			TeamScoreEval[] bestLine = null;
 
 			int forcedMoveCount = _config.fixturePicks.Count;
 			int minimumDepth = forcedMoveCount +1;
 			int targetDepth = minimumDepth -1;
-			while (++targetDepth < _config.fixtureCount) {
+			while (++targetDepth <= _config.fixtureCount) {
 				
 				// Initialise engine
 
@@ -151,16 +157,16 @@ namespace fpli {
 				
 				// Iterate through root moves
 				double bestScore = 0;
-				TeamScoreEval[] bestLine = null;
 
 				depth--;
 				int rootDepth = depth;
-				while (moveIndex[rootDepth] <= 20) {
+				while (moveIndex[rootDepth] < 20) {
 					
-					while (moveIndex[depth] <= 20) {
+					while (moveIndex[depth] < 20) {
 
 						// Go the next move
-						moveIndex[depth]++;
+						++nodes;
+						++moveIndex[depth];
 						board[depth] >>= 1;
 						
 						// Has this team already been used ?
@@ -181,7 +187,7 @@ namespace fpli {
 								if (eval[depth].eval > bestScore) {
 									bestScore = eval[depth].eval;
 									bestLine = (TeamScoreEval[]) eval.Clone();
-									_displayLine(bestLine);
+									_displayLine(bestLine, nodes);
 								}
 							}
 						}
@@ -191,6 +197,10 @@ namespace fpli {
 					depth++;
 				}
 			}
+
+			// We're done, show the final line.
+			Console.WriteLine("---\nSearch Complete.  Best Line:");
+			_displayLine(bestLine, nodes);
 
 			// For each searchdepth from forcedMoveCount+1 to targetDepth
 			// 		Initialise engine
@@ -227,13 +237,19 @@ namespace fpli {
 		// A line starts at the node and works to the root though we'll need to 
 		// display it in inverse order
 
-		void _displayLine(TeamScoreEval[] line) {
-			Console.Write($"Depth {line.Length}, best {line[0].eval:0.000}:");
+		void _displayLine(TeamScoreEval[] line, Int64 nodes) {
+			
+			double mn = nodes / 1000000d;
+			TimeSpan diff = DateTime.UtcNow.Subtract(analysisStart);
+			double nps = mn / diff.TotalSeconds;
+
+			Console.Write($"{diff.TotalSeconds,4:0.0}s Depth {line.Length}, best {line[0].eval:0.000}:");
 			for (int i = line.Length -1; i >= 0; --i) {
 				string teamName = _fpl.Bootstrap.teams.Find(t => t.id == line[i].team).short_name;
 				Console.Write($"  {teamName} {line[i].eval:0.000}");
 			}
-			Console.WriteLine("");
+			
+			Console.WriteLine($"  ({mn:0.00}m nodes at {nps:0.0}m/s)");
 		}
 	}
 
