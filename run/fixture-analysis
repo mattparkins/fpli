@@ -15,7 +15,7 @@ echo "Running Fixture Predictor"
 #
 # starts the analysis starting in GW1, covering 8 gameweeks (so GW1-GW8) 
 # with GW1 being fixed on AVL and GW2 on LIV
-#dotnet run --executeFixtureAnalysis 1 8
+dotnet run --executeFixtureAnalysis 1 8
 # dotnet run --executeFixtureAnalysis 1 8 --previousPicks AVL
 # dotnet run --executeFixtureAnalysis 1 8 --previousPicks NEW ARS
-dotnet run --executeFixtureAnalysis 3 2
+# dotnet run --executeFixtureAnalysis 3 2
