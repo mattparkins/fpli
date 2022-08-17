@@ -95,23 +95,8 @@ namespace fpli {
 				});
 			}
 
-
-			// Use double as the numbers will get small after 8 depth
 			// Win expectancy is a good start, but WE includes draw points - is there a way of removing them using historic data?
 			// Perhaps reducing win % by the proportion of points that come from draws?  (would have to consider win to be worth 2pts, draw 1pt)
-
-			// Go through every fixture this week
-			// _fpl.Fixtures[2].ForEach(f => {
-			// 	int homeId = f.team_h;
-			// 	int awayId = f.team_a;
-			// 	float weHome = _winExpectancyHome(homeId, awayId);
-			// 	float weAway = _winExpectancyAway(homeId, awayId);
-			// 	string homeName = _fpl.Bootstrap.teams.Find(t => t.id == homeId).short_name;
-			// 	string awayName = _fpl.Bootstrap.teams.Find(t => t.id == awayId).short_name;
-			// 	string homeGoals = f.team_h_score?.ToString() ?? "TBD";
-			// 	string awayGoals = f.team_a_score?.ToString() ?? "TBD";
-			// 	Console.WriteLine($"WE for {homeName} ({weHome:0.00}) vs ({weAway:0.00}) {awayName}, actual {homeGoals}-{awayGoals} ");
-			// });
 		}
 
 		private void _buildForcedMoves() {
@@ -192,7 +177,7 @@ namespace fpli {
 							eval[depth].eval = eval[depth +1].eval * newEval;								// Multiply the score in
 							board[depth] = board[depth +1] & ~(1 << moveIndex[depth]);						// Mark team as used
 
-							// If we're not at the leaf we need to set up the recurse
+							// If we're not at the leaf we need to advance deeper
 							if (depth > 0) {
 								depth--;
 								moveIndex[depth] =0;
@@ -200,7 +185,7 @@ namespace fpli {
 							} else {
 								// If we're at the leaf, check if it's a new best score
 								if (eval[depth].eval > bestScore) {
-									bestScore = eval[depth].eval;
+									bestScore = eval[depth].eval;	// New high, this won't be executed often at all
 									bestLine = (TeamScoreEval[]) eval.Clone();
 									_displayLine(bestLine, targetDepth, nodes);
 								}
@@ -216,20 +201,6 @@ namespace fpli {
 			// We're done, show the final line.
 			Console.WriteLine("---\nSearch Complete.  Best Line:");
 			_displayLine(bestLine, targetDepth -1, nodes);
-
-			// For each searchdepth from forcedMoveCount+1 to targetDepth
-			// 		Initialise engine
-			// 		Play forced moves
-			// 		Enumerate "root" moves
-			// 		Foreach root move recurse
-			//			Make move
-			// 				If not at leaf 
-			//					enumerate moves
-			//					foreach move recurse
-			//				else 
-			//					evaluate
-			//			undo move
-			//		return best evaluation
 		}
 
 		double _winExpectancyHome(int homeId, int awayId) {
