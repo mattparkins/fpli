@@ -143,7 +143,8 @@ namespace fpli {
 				// The index into each move, which coincidentally is also the teamid
 				int[] moveIndex = new int[targetDepth];
 
-				TeamScoreEval[] eval = new TeamScoreEval[targetDepth];
+				TeamScoreEval[] eval = new TeamScoreEval[targetDepth +1];
+				eval[targetDepth].eval = 1;
 				int depth = targetDepth;
 
 				// Play forced moves
@@ -187,7 +188,7 @@ namespace fpli {
 								if (eval[depth].eval > bestScore) {
 									bestScore = eval[depth].eval;
 									bestLine = (TeamScoreEval[]) eval.Clone();
-									_displayLine(bestLine, nodes);
+									_displayLine(bestLine, targetDepth, nodes);
 								}
 							}
 						}
@@ -200,7 +201,7 @@ namespace fpli {
 
 			// We're done, show the final line.
 			Console.WriteLine("---\nSearch Complete.  Best Line:");
-			_displayLine(bestLine, nodes);
+			_displayLine(bestLine, targetDepth, nodes);
 
 			// For each searchdepth from forcedMoveCount+1 to targetDepth
 			// 		Initialise engine
@@ -235,16 +236,17 @@ namespace fpli {
 
 
 		// A line starts at the node and works to the root though we'll need to 
-		// display it in inverse order
+		// display it in inverse order.  The alg above requires one extra depth sometimes
+		// so we need to pass in the depth rather than infer it from the line.length
 
-		void _displayLine(TeamScoreEval[] line, Int64 nodes) {
+		void _displayLine(TeamScoreEval[] line, int depth, Int64 nodes) {
 			
 			double mn = nodes / 1000000d;
 			TimeSpan diff = DateTime.UtcNow.Subtract(analysisStart);
 			double nps = mn / diff.TotalSeconds;
 
-			Console.Write($"{diff.TotalSeconds,4:0.0}s Depth {line.Length}, best {line[0].eval:0.000}:");
-			for (int i = line.Length -1; i >= 0; --i) {
+			Console.Write($"{diff.TotalSeconds,4:0.0}s Depth {depth}, best {line[0].eval:0.000}:");
+			for (int i = depth -1; i >= 0; --i) {
 				string teamName = _fpl.Bootstrap.teams.Find(t => t.id == line[i].team).short_name;
 				Console.Write($"  {teamName} {line[i].eval:0.000}");
 			}
