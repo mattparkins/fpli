@@ -78,12 +78,20 @@ namespace fpli {
 			teamFixtureWE = new double[_config.fixtureCount +1, 21];
 
 			for (int gw = _config.gameweek; gw < _config.gameweek + _config.fixtureCount; gw++) {
-				int index = _config.gameweek + _config.fixtureCount - gw;
+				//int index = _config.gameweek + _config.fixtureCount - gw;
+				int index = gw;
+
+				Console.WriteLine($"\nFixtures for GW{gw}");
 
 				// For every fixture in this gameweek
 				_fpl.Fixtures[gw].ForEach(fix => {
 					teamFixtureWE[index, fix.team_h] = _winExpectancyHome(fix.team_h, fix.team_a);
 					teamFixtureWE[index, fix.team_a] = _winExpectancyAway(fix.team_h, fix.team_a);
+
+					string hname = _fpl.Bootstrap.teams.Find(t => t.id == fix.team_h).short_name;
+					string aname = _fpl.Bootstrap.teams.Find(t => t.id == fix.team_a).short_name;
+
+					Console.WriteLine($"{hname} {teamFixtureWE[index, fix.team_h]:0.000} vs {teamFixtureWE[index, fix.team_a]:0.000} {aname} ");
 				});
 			}
 
@@ -121,6 +129,7 @@ namespace fpli {
 			_buildForcedMoves();
 
 			analysisStart = DateTime.UtcNow;
+			Console.WriteLine($"\nEngine started {analysisStart.ToShortTimeString()}\n");
 
 			const int resetBoard = (1 << 21) -2; // 0x1FFFFE, 20 bits set, offset by 1
 			Int64 nodes = 0;
@@ -168,15 +177,15 @@ namespace fpli {
 						// Go the next move
 						++nodes;
 						++moveIndex[depth];
-						board[depth] >>= 1;
 						
 						// Has this team already been used ?
-						if ((board[depth] & 1) == 1) {
+						if ((board[depth] & (1 << moveIndex[depth])) != 0) { 
 							
 							// No, so add to the eval and make the move 
-							eval[depth].team = moveIndex[depth];	// Add team to the eval
-							eval[depth].eval = eval[depth +1].eval * teamFixtureWE[targetDepth -depth, moveIndex[depth]];	// Multiply the score in
-							board[depth] = board[depth +1] & ~(1 << moveIndex[depth]);							// Mark team as used
+							eval[depth].team = moveIndex[depth];											// Add team to the eval
+							double newEval = teamFixtureWE[targetDepth -depth, moveIndex[depth]];
+							eval[depth].eval = eval[depth +1].eval * newEval;								// Multiply the score in
+							board[depth] = board[depth +1] & ~(1 << moveIndex[depth]);						// Mark team as used
 
 							// If we're not at the leaf we need to set up the recurse
 							if (depth > 0) {
@@ -241,6 +250,10 @@ namespace fpli {
 
 		void _displayLine(TeamScoreEval[] line, int depth, Int64 nodes) {
 			
+			if (line == null) {
+				return;
+			}
+
 			double mn = nodes / 1000000d;
 			TimeSpan diff = DateTime.UtcNow.Subtract(analysisStart);
 			double nps = mn / diff.TotalSeconds;
@@ -248,6 +261,12 @@ namespace fpli {
 			Console.Write($"{diff.TotalSeconds,4:0.0}s Depth {depth}, best {line[0].eval:0.000}:");
 			for (int i = depth -1; i >= 0; --i) {
 				string teamName = _fpl.Bootstrap.teams.Find(t => t.id == line[i].team).short_name;
+				
+				// is this team away?  If so lowercase it.
+				if (_fpl.Fixtures[depth-i].FindIndex(fix => fix.team_a == line[i].team) != -1) {
+					teamName = teamName.ToLower();
+				}
+				
 				Console.Write($"  {teamName} {line[i].eval:0.000}");
 			}
 			
