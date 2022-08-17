@@ -201,7 +201,7 @@ namespace fpli {
 
 			// We're done, show the final line.
 			Console.WriteLine("---\nSearch Complete.  Best Line:");
-			_displayLine(bestLine, targetDepth, nodes);
+			_displayLine(bestLine, targetDepth -1, nodes);
 
 			// For each searchdepth from forcedMoveCount+1 to targetDepth
 			// 		Initialise engine
