@@ -79,7 +79,7 @@ namespace fpli {
 
 			for (int gw = _config.gameweek; gw < _config.gameweek + _config.fixtureCount; gw++) {
 				//int index = _config.gameweek + _config.fixtureCount - gw;
-				int index = gw;
+				int index = gw -_config.gameweek +1;
 
 				Console.WriteLine($"\nFixtures for GW{gw}");
 
@@ -140,7 +140,8 @@ namespace fpli {
 			int targetDepth = minimumDepth -1;
 			while (++targetDepth <= _config.fixtureCount) {
 				
-				// Initialise engine
+				// Initialise engine - set up the engine each time we increase the target depth
+				// So for an 8 deep search with no forced moves, we will set the engine up 8 times total.
 
 				// The board is a bit array where the team id is an index to the bit
 				// which if set has been used at this level or higher
@@ -165,10 +166,14 @@ namespace fpli {
 					board[depth] = board[depth +1] & ~(1 << teamId);
 				} 
 				
-				// Iterate through root moves
-				double bestScore = 0;
+				// Set up the "board"
 
+				double bestScore = 0;
 				depth--;
+				board[depth] = board[depth +1];
+
+				// Iterate through root moves
+
 				int rootDepth = depth;
 				while (moveIndex[rootDepth] < 20) {
 					
@@ -263,7 +268,7 @@ namespace fpli {
 				string teamName = _fpl.Bootstrap.teams.Find(t => t.id == line[i].team).short_name;
 				
 				// is this team away?  If so lowercase it.
-				if (_fpl.Fixtures[depth-i].FindIndex(fix => fix.team_a == line[i].team) != -1) {
+				if (_fpl.Fixtures[_config.gameweek +depth -i -1].FindIndex(fix => fix.team_a == line[i].team) != -1) {
 					teamName = teamName.ToLower();
 				}
 				
