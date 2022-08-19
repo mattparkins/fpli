@@ -39,7 +39,7 @@ namespace fpli {
 			foreach (var fn in files) {
 				//Extract GW id from filename
 				int gw = 0;
-				if (Int32.TryParse(Regex.Match(fn, @"\d+").Value, out gw)) {
+				if (Int32.TryParse(Regex.Match(fn, @"\d+", RegexOptions.RightToLeft).Value, out gw)) {
 					Fixtures[season][gw] = Utils.DeserializeFromFile<List<Fixture>>(fn);
 				}
 			}

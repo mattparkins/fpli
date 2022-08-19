@@ -241,5 +241,16 @@ namespace fpli {
         public Element GetElement(int elementId) {
             return elements.Find(e => elementId == e.id);
         }
+
+
+        // Retrieve a team using their persistent code
+        public Team GetTeamFromCode(int code) {
+            return teams.Find(t => t.code == code);
+        }
+
+        // Retrieve a team using their season id
+        public Team GetTeamFromId(int id) {
+            return teams.Find(t => t.id == id);
+        }
     }
 }

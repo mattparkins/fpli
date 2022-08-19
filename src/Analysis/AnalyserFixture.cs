@@ -30,7 +30,9 @@ namespace fpli {
 
 
 		// Check and fix any data invalidity
-		public override void Preprocess() {}
+		public override void Preprocess() {
+			TeamElo.Initialise(20);
+		}
 
 		enum Venue {
 			HOME = 0,
