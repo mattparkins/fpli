@@ -1,4 +1,10 @@
 namespace fpli {
+
+	public enum Venue {
+		HOME = 0,
+		AWAY = 1,
+	}
+
 	public class FixtureAnalyser : Analyser {
 
 		public override bool RequiresHistory { get { return true; } }
@@ -31,12 +37,7 @@ namespace fpli {
 
 		// Check and fix any data invalidity
 		public override void Preprocess() {
-			TeamElo.Initialise(20);
-		}
-
-		enum Venue {
-			HOME = 0,
-			AWAY = 1,
+			EloManager.Initialise(40);
 		}
 
 		DateTime analysisStart;
@@ -49,17 +50,7 @@ namespace fpli {
 		double[,] teamFixtureWE;			// gameweek, teamid
 
 		private void _calculateTeamStrengths() {
-			// Use FPL home/away strengths for now, but find the max/med/min
-			_minStrength[(int) Venue.HOME] = (int) _fpl.Bootstrap.teams.Min(t => t.strength_overall_home);
-			_maxStrength[(int) Venue.HOME] = (int) _fpl.Bootstrap.teams.Max(t => t.strength_overall_home);
-			_minStrength[(int) Venue.AWAY] = (int) _fpl.Bootstrap.teams.Min(t => t.strength_overall_away);
-			_maxStrength[(int) Venue.AWAY] = (int) _fpl.Bootstrap.teams.Max(t => t.strength_overall_away);
-
-			Console.WriteLine($"Home min/med/max strengths: {_minStrength[(int) Venue.HOME]} {_maxStrength[(int) Venue.HOME]}");
-			Console.WriteLine($"Away min/med/max strengths: {_minStrength[(int) Venue.AWAY]} {_maxStrength[(int) Venue.AWAY]}");
-
-			// Todo: foreach team, as home work out the WE against each possible opponent.
-
+		
 			Console.WriteLine("Win expectancy (home is left column):");
 			Console.Write("     ");
 			for (int a = 1; a <= 20; a++) {
@@ -205,20 +196,41 @@ namespace fpli {
 			_displayLine(bestLine, targetDepth -1, nodes);
 		}
 
+
 		double _winExpectancyHome(int homeId, int awayId) {
 			Team home = _fpl.Bootstrap.teams.Find(t => t.id == homeId);
 			Team away = _fpl.Bootstrap.teams.Find(t => t.id == awayId);
 
-			double dr = (away.strength_overall_away - home.strength_overall_home);
-			return 1f/(Math.Pow(10f, dr/400f) +1f);
+			Elo awayElo = EloManager.TeamElo[Venue.AWAY][away.code];
+			Elo homeElo = EloManager.TeamElo[Venue.HOME][home.code];
+
+			double awayRating = awayElo.Rating;
+			double homeRating = homeElo.Rating;
+			double dr = awayRating - homeRating;
+			double we = 1.0/(Math.Pow(10.0, dr/400.0) +1.0);
+
+			// Dampen WE by the proportion of win-draw points
+			//we *= (homeElo.DrawForm / homeElo.WinForm *.5) +1.0;
+			
+			return we;
 		}
+
 
 		double _winExpectancyAway(int homeId, int awayId) {
 			Team home = _fpl.Bootstrap.teams.Find(t => t.id == homeId);
 			Team away = _fpl.Bootstrap.teams.Find(t => t.id == awayId);
 
-			double dr = (home.strength_overall_home - away.strength_overall_away);
-			return 1f/(Math.Pow(10f, dr/400f) +1f);
+			Elo awayElo = EloManager.TeamElo[Venue.AWAY][away.code];
+			Elo homeElo = EloManager.TeamElo[Venue.HOME][home.code];
+
+			double awayRating = awayElo.Rating;
+			double homeRating = homeElo.Rating;
+			double dr = homeRating - awayRating;
+			double we = 1.0/(Math.Pow(10.0, dr/400.0) +1.0);
+
+			//we *= awayElo.DrawForm / awayElo.WinForm;
+
+			return we;
 		}
 
 
