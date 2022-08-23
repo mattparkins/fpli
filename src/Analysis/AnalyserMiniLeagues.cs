@@ -260,8 +260,24 @@ namespace fpli {
 			if (list.Count == 1) {
 				list.ForEach(m => {
 					var e = _standings.GetEntry(m.Value.GetEntryId);
-					Console.WriteLine("  "+e.player_name+":");
+					Console.WriteLine("  "+e.player_name+":\n");
 					
+					var man =_fpl.Managers[e.entry];
+					List<int> ins = new();
+					List<int> outs = new();
+
+					man.GetTransfers.Where(tr => tr.@event == _fpl.Bootstrap.GetCurrentGameweekId()).ToList().ForEach(tr => {
+						ins.Add(tr.element_in);
+						outs.Add(tr.element_out);
+					});
+
+					_expandTransfers(ins, outs, m.Value.GetTransferCost);	
+				});
+			} else {
+				list.ForEach(m => {
+					var e = _standings.GetEntry(m.Value.GetEntryId);
+					Console.Write("\n  "+e.player_name+"\n");
+
 					var man =_fpl.Managers[e.entry];
 					List<int> ins = new();
 					List<int> outs = new();
@@ -286,7 +302,7 @@ namespace fpli {
 			if (list.Count == 1) {
 				list.ForEach(m => {
 					var e = _standings.GetEntry(m.Value.GetEntryId);
-					Console.Write(", "+e.player_name);
+					Console.Write(", "+e.player_name+"\n");
 
 					var man =_fpl.Managers[e.entry];
 					List<int> ins = new();
