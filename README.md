@@ -23,7 +23,7 @@ dotnet run --leagueId `<league Id>` --maxManagers `<Maximum number of managers>`
 
 dotnet run --leagueId 314 --maxManagers 100
 
-The leagueId is can be found by looking in the URL of a league table on the officialFPL website. MaxManagers defaults to 50. The engine will download two files for each manager - their team selection and transfer history.
+The leagueId can be found by looking in the URL of a league table on the officialFPL website. MaxManagers defaults to 50. The engine will download two files for each manager - their team selection and transfer history.
 
 ### Fixture Analysis
 
@@ -32,3 +32,5 @@ The Fixture Analysis Engine is a search engine (like chess) for predictor games 
 dotnet run --executeFixtureAnalysis `<start gameweek>` `<number of gameweeks>` --previousPicks `<list of previously selected teams>`
 
 dotnet run --executeFixtureAnalysis 1 10 --previousPicks NEW ARS TOT CHE
+
+The fixture analyser will need to fetch the upcoming gameweeks. It cannot handle double gameweeks yet. It does not yet screen out draws from the win expectancy.
