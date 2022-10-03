@@ -6,6 +6,7 @@ namespace fpli {
 		int _captain;
 		int _gw;
 		int? _transfersResult = null;
+		ManagerHistory _managerHistory;
 		
 		public int GetEntryId 		{ get { return _entryId; }} 
 		public int GetCaptain 		{ get { return _captain; }}
@@ -16,8 +17,9 @@ namespace fpli {
 		public int GetTransferCost  { get { return _picks.entry_history.event_transfers_cost; }}
 		public bool DidRoll			{ get { return GetChip == null && GetTransferCount == 0 && _gw != 1; }}
 
-		public Picks GetPicks 		{ get { return _picks; }}
-		public List<Transfer> GetTransfers { get { return _transfers; }}
+		public Picks GetPicks 						{ get { return _picks; }}
+		public List<Transfer> GetTransfers 			{ get { return _transfers; }}
+		public ManagerHistory GetManagerHistory 	{ get { return _managerHistory; }}
 
 		public Manager(int entryId) {
 			_entryId = entryId;
@@ -27,6 +29,7 @@ namespace fpli {
 			_gw = GW;
 			_picks = await Fetcher.FetchAndDeserialise<Picks>($"{cachePath}picks_{_entryId}_GW{GW}.json", $"{api}entry/{_entryId}/event/{GW}/picks/", Utils.DaysAsSeconds(1));
 			_transfers = await Fetcher.FetchAndDeserialise<List<Transfer>>($"{cachePath}transfers_{_entryId}_GW{GW}.json", $"{api}entry/{_entryId}/transfers/", Utils.DaysAsSeconds(300));
+			_managerHistory = await Fetcher.FetchAndDeserialise<ManagerHistory>($"{cachePath}entry_{_entryId}_history_GW{GW}.json", $"{api}entry/{_entryId}/history/", Utils.DaysAsSeconds(0.25f));
 
 			// pull out any shortcut data
 			_picks.picks.ForEach(p => {
@@ -51,6 +54,46 @@ namespace fpli {
 			}
 
 			return (int) _transfersResult;
+		}
+
+		public int SeasonTransfers() {
+			int seasonTransfers = 0;
+
+			_managerHistory.current.ForEach(gw => {
+				seasonTransfers += gw.event_transfers;
+			});
+
+			return seasonTransfers;
+		}
+
+
+		public int SeasonHits() {
+			int seasonHits = 0;
+
+			_managerHistory.current.ForEach(gw => {
+				seasonHits += gw.event_transfers_cost;
+			});
+			
+			return seasonHits;
+		}
+
+
+		public int SeasonPointsOnBench() {
+			int seasonPointsOnBench = 0;
+
+			_managerHistory.current.ForEach(gw => {
+				seasonPointsOnBench += gw.points_on_bench;
+			});
+			
+			return seasonPointsOnBench;
+		}
+
+		public int GetCurrentCashInBank() {
+			return _managerHistory.current.Last().bank;
+		}
+
+		public int GetCurrentTeamValue() {
+			return _managerHistory.current.Last().value;
 		}
 	}
 }

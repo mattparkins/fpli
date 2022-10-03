@@ -43,14 +43,22 @@ namespace fpli {
 			_reportCaptaincy();
 			_reportHits();
 
-			Console.WriteLine("\nPostGW Analysis\n");
+			Console.WriteLine("\n\n\nPostGW Analysis\n");
 
 			_reportPoints();
 			_reportBiggestRankMoves();
 			_reportPointsOnBench();
 			_reportTransferSummary();
 			_reportTransferDetail();
-			_reportCaptaincyReturns();			
+			_reportCaptaincyReturns();		
+
+
+			Console.WriteLine("\n\n\nSeason stats");
+
+			_reportMostPointsOnBenchTable();	
+			_reportHighestValueTeamTable();
+			_reportMostHitsTable();
+			_reportNoHitClub();
 		}
 
 
@@ -338,6 +346,71 @@ namespace fpli {
 		private void _reportTransferDetail() { 
 			Console.Write("");
 		}
+
+
+		private void _reportMostPointsOnBenchTable() {
+			Console.WriteLine("\n\nPoints on Bench Leaderboard");
+			Console.WriteLine("---------------------------");
+
+			int placing = 0;
+
+			_fpl.Managers.OrderByDescending(m => m.Value.SeasonPointsOnBench()).ToList().ForEach(manager => {
+				if (++placing <= 3) {
+					var name = _standings.GetEntry(manager.Value.GetEntryId).player_name;
+					Console.WriteLine($"{placing}. {name} ({manager.Value.SeasonPointsOnBench()} pts)");
+				}
+			});
+		}	
+
+
+		private void _reportMostHitsTable() {
+			Console.WriteLine("\n\nHits Leaderboard");
+			Console.WriteLine("----------------");
+
+			int placing = 0;
+
+			_fpl.Managers.OrderByDescending(m => m.Value.SeasonHits()).ToList().ForEach(manager => {
+				if (++placing <= 3) {
+					var name = _standings.GetEntry(manager.Value.GetEntryId).player_name;
+					Console.WriteLine($"{placing}. {name} ({manager.Value.SeasonHits()} pts)");
+				}
+			});
+		}
+
+
+		private void _reportNoHitClub() {
+			Console.WriteLine("\n\nNo Hit Club");
+			Console.WriteLine("-----------");
+
+			var nhcList = _fpl.Managers.Where(m => m.Value.SeasonHits() == 0).ToList();
+
+			if (nhcList.Count == 0) {
+				Console.WriteLine("(none)");
+			} else {
+				nhcList.ForEach(manager => {
+					var name = _standings.GetEntry(manager.Value.GetEntryId).player_name;
+					Console.WriteLine($"{name}");
+				});
+			}
+		}
+
+
+		private void _reportHighestValueTeamTable() {
+			Console.WriteLine("\n\nTeam Value Leaderboard");
+			Console.WriteLine("----------------------");
+
+			int placing = 0;
+
+			_fpl.Managers.OrderByDescending(m => m.Value.GetCurrentTeamValue()).ToList().ForEach(manager => {
+				if (++placing <= 3) {
+					var name = _standings.GetEntry(manager.Value.GetEntryId).player_name;
+					float v = manager.Value.GetCurrentTeamValue()/10f;
+					Console.WriteLine($"{placing}. {name} (£{v})");
+				}
+			});
+		}
+
+
 
 
 		public void _expandTransfers(List<int> ins, List<int> outs, int transferCost) {
