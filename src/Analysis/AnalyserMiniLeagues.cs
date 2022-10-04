@@ -43,7 +43,7 @@ namespace fpli {
 			_reportCaptaincy();
 			_reportHits();
 
-			Console.WriteLine("\n\n\nPostGW Analysis\n");
+			Console.WriteLine("\n\n\nPostGW Analysis:\n");
 
 			_reportPoints();
 			_reportBiggestRankMoves();
@@ -53,7 +53,7 @@ namespace fpli {
 			_reportCaptaincyReturns();		
 
 
-			Console.WriteLine("\n\n\nSeason stats");
+			Console.WriteLine("\n\nSeason stats:");
 
 			_reportMostPointsOnBenchTable();	
 			_reportHighestScoresTable();
@@ -350,8 +350,8 @@ namespace fpli {
 
 
 		private void _reportMostPointsOnBenchTable() {
-			Console.WriteLine("\n\nPoints on Bench Leaderboard");
-			Console.WriteLine("---------------------------");
+			Console.WriteLine("\n\nSeason Points on Bench");
+			Console.WriteLine("------------------------");
 
 			int placing = 0;
 
@@ -366,7 +366,7 @@ namespace fpli {
 
 		private void _reportMostHitsTable() {
 			Console.WriteLine("\n\nHits Leaderboard");
-			Console.WriteLine("----------------");
+			Console.WriteLine("------------------");
 
 			int placing = 0;
 
@@ -398,7 +398,7 @@ namespace fpli {
 
 		private void _reportHighestValueTeamTable() {
 			Console.WriteLine("\n\nTeam Value Leaderboard");
-			Console.WriteLine("----------------------");
+			Console.WriteLine("------------------------");
 
 			int placing = 0;
 
@@ -413,8 +413,8 @@ namespace fpli {
 
 
 		private void _reportHighestScoresTable() {
-			Console.WriteLine("\n\nMost Net Points in a GW Leaderboard");
-			Console.WriteLine("-----------------------------------");
+			Console.WriteLine("\n\nMost Net Points in a GW");
+			Console.WriteLine("----------------------------");
 
 			List<(int, int, int)> np = new();
 			
