@@ -7,6 +7,7 @@ namespace fpli {
 		int _gw;
 		int? _transfersResult = null;
 		ManagerHistory _managerHistory;
+		List <(int, int, int)> _orderedNetPoints;
 		
 		public int GetEntryId 		{ get { return _entryId; }} 
 		public int GetCaptain 		{ get { return _captain; }}
@@ -27,7 +28,7 @@ namespace fpli {
 
 		public async Task Fetch(string cachePath, string api, int GW) {
 			_gw = GW;
-			_picks = await Fetcher.FetchAndDeserialise<Picks>($"{cachePath}picks_{_entryId}_GW{GW}.json", $"{api}entry/{_entryId}/event/{GW}/picks/", Utils.DaysAsSeconds(1));
+			_picks = await Fetcher.FetchAndDeserialise<Picks>($"{cachePath}picks_{_entryId}_GW{GW}.json", $"{api}entry/{_entryId}/event/{GW}/picks/", Utils.DaysAsSeconds(0.25f));
 			_transfers = await Fetcher.FetchAndDeserialise<List<Transfer>>($"{cachePath}transfers_{_entryId}_GW{GW}.json", $"{api}entry/{_entryId}/transfers/", Utils.DaysAsSeconds(300));
 			_managerHistory = await Fetcher.FetchAndDeserialise<ManagerHistory>($"{cachePath}entry_{_entryId}_history_GW{GW}.json", $"{api}entry/{_entryId}/history/", Utils.DaysAsSeconds(0.25f));
 
@@ -94,6 +95,24 @@ namespace fpli {
 
 		public int GetCurrentTeamValue() {
 			return _managerHistory.current.Last().value;
+		}
+
+		// Returns a tuple of: net points, gameweek, entry id
+		public List<(int, int, int)> GetOrderedNetPoints() {
+
+			if (_orderedNetPoints == null) {
+				_orderedNetPoints = new List<(int, int, int)>();
+
+				_managerHistory.current.ForEach(
+					hgw => _orderedNetPoints.Add(
+						new(hgw.points - hgw.event_transfers_cost, hgw.@event, _entryId)
+					)
+				);
+
+				_orderedNetPoints.Sort();
+			}
+
+			return _orderedNetPoints;
 		}
 	}
 }

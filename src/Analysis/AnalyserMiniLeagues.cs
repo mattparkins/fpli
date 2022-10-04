@@ -56,6 +56,7 @@ namespace fpli {
 			Console.WriteLine("\n\n\nSeason stats");
 
 			_reportMostPointsOnBenchTable();	
+			_reportHighestScoresTable();
 			_reportHighestValueTeamTable();
 			_reportMostHitsTable();
 			_reportNoHitClub();
@@ -268,7 +269,7 @@ namespace fpli {
 			if (list.Count == 1) {
 				list.ForEach(m => {
 					var e = _standings.GetEntry(m.Value.GetEntryId);
-					Console.WriteLine("  "+e.player_name+":\n");
+					Console.WriteLine("  "+e.player_name+":");
 					
 					var man =_fpl.Managers[e.entry];
 					List<int> ins = new();
@@ -372,7 +373,7 @@ namespace fpli {
 			_fpl.Managers.OrderByDescending(m => m.Value.SeasonHits()).ToList().ForEach(manager => {
 				if (++placing <= 3) {
 					var name = _standings.GetEntry(manager.Value.GetEntryId).player_name;
-					Console.WriteLine($"{placing}. {name} ({manager.Value.SeasonHits()} pts)");
+					Console.WriteLine($"{placing}. {name} (-{manager.Value.SeasonHits()} pts)");
 				}
 			});
 		}
@@ -405,7 +406,30 @@ namespace fpli {
 				if (++placing <= 3) {
 					var name = _standings.GetEntry(manager.Value.GetEntryId).player_name;
 					float v = manager.Value.GetCurrentTeamValue()/10f;
-					Console.WriteLine($"{placing}. {name} (£{v})");
+					Console.WriteLine($"{placing}. {name} (£{v:#.0}m)");
+				}
+			});
+		}
+
+
+		private void _reportHighestScoresTable() {
+			Console.WriteLine("\n\nMost Net Points in a GW Leaderboard");
+			Console.WriteLine("-----------------------------------");
+
+			List<(int, int, int)> np = new();
+			
+			foreach(var entry in _fpl.Managers) {
+				np.AddRange(entry.Value.GetOrderedNetPoints());
+			}
+
+			np.Sort();
+			np.Reverse();
+
+			int placing = 0;
+			np.ForEach(netPointEntry => {
+				if (++placing <= 3) {
+					var name = _standings.GetEntry(netPointEntry.Item3).player_name;
+					Console.WriteLine($"{placing}. {name}, {netPointEntry.Item1} pts (GW{netPointEntry.Item2})");
 				}
 			});
 		}
