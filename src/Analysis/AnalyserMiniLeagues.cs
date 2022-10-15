@@ -358,7 +358,9 @@ namespace fpli {
 			_fpl.Managers.OrderByDescending(m => m.Value.SeasonPointsOnBench()).ToList().ForEach(manager => {
 				if (++placing <= 3) {
 					var name = _standings.GetEntry(manager.Value.GetEntryId).player_name;
-					Console.WriteLine($"{placing}. {name} ({manager.Value.SeasonPointsOnBench()} pts)");
+					var delta = manager.Value.GetBenchPoints;
+					var ds = delta > 0 ? $"+{delta}" : delta < 0 ? $"-{delta}" : "=";
+					Console.WriteLine($"{placing}. {name}, {manager.Value.SeasonPointsOnBench()} pts ({ds})");
 				}
 			});
 		}	
@@ -372,8 +374,11 @@ namespace fpli {
 
 			_fpl.Managers.OrderByDescending(m => m.Value.SeasonHits()).ToList().ForEach(manager => {
 				if (++placing <= 3) {
-					var name = _standings.GetEntry(manager.Value.GetEntryId).player_name;
-					Console.WriteLine($"{placing}. {name} (-{manager.Value.SeasonHits()} pts)");
+					Result entry = _standings.GetEntry(manager.Value.GetEntryId);
+					var name = entry.player_name;
+					var tc = manager.Value.GetTransferCost;
+					var tcs = tc == 0 ? "=" : "-"+tc;
+					Console.WriteLine($"{placing}. {name}, -{manager.Value.SeasonHits()} pts ({tcs})");
 				}
 			});
 		}
