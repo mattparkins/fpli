@@ -354,13 +354,20 @@ namespace fpli {
 			Console.WriteLine("------------------------");
 
 			int placing = 0;
+			int lastPoints = 0;
 
 			_fpl.Managers.OrderByDescending(m => m.Value.SeasonPointsOnBench()).ToList().ForEach(manager => {
 				if (++placing <= 3) {
 					var name = _standings.GetEntry(manager.Value.GetEntryId).player_name;
 					var delta = manager.Value.GetBenchPoints;
 					var ds = delta > 0 ? $"+{delta}" : delta < 0 ? $"-{delta}" : "=";
-					Console.WriteLine($"{placing}. {name}, {manager.Value.SeasonPointsOnBench()} pts ({ds})");
+
+					// Only show placing number if not equal with previous
+					bool equalWithLast = manager.Value.SeasonPointsOnBench() == lastPoints;
+					lastPoints = manager.Value.SeasonPointsOnBench();
+					var placingDisplay = equalWithLast ? "  ": $"{placing}.";
+
+					Console.WriteLine($"{placingDisplay} {name}, {manager.Value.SeasonPointsOnBench()} pts ({ds})");
 				}
 			});
 		}	
@@ -371,6 +378,7 @@ namespace fpli {
 			Console.WriteLine("------------------");
 
 			int placing = 0;
+			int lastPoints = 0;
 
 			_fpl.Managers.OrderByDescending(m => m.Value.SeasonHits()).ToList().ForEach(manager => {
 				if (++placing <= 3) {
@@ -378,7 +386,13 @@ namespace fpli {
 					var name = entry.player_name;
 					var tc = manager.Value.GetTransferCost;
 					var tcs = tc == 0 ? "=" : "-"+tc;
-					Console.WriteLine($"{placing}. {name}, -{manager.Value.SeasonHits()} pts ({tcs})");
+
+					// Only show placing number if not equal with previous
+					bool equalWithLast = manager.Value.SeasonHits() == lastPoints;
+					lastPoints = manager.Value.SeasonHits();
+					var placingDisplay = equalWithLast ? "  ": $"{placing}.";
+
+					Console.WriteLine($"{placingDisplay} {name}, -{manager.Value.SeasonHits()} pts ({tcs})");
 				}
 			});
 		}
@@ -406,12 +420,19 @@ namespace fpli {
 			Console.WriteLine("------------------------");
 
 			int placing = 0;
+			int lastValue = 0;
 
 			_fpl.Managers.OrderByDescending(m => m.Value.GetCurrentTeamValue()).ToList().ForEach(manager => {
 				if (++placing <= 3) {
 					var name = _standings.GetEntry(manager.Value.GetEntryId).player_name;
 					float v = manager.Value.GetCurrentTeamValue()/10f;
-					Console.WriteLine($"{placing}. {name} (£{v:#.0}m)");
+
+					// Only show placing number if not equal with previous
+					bool equalWithLast = manager.Value.GetCurrentTeamValue() == lastValue;
+					lastValue = manager.Value.GetCurrentTeamValue();
+					var placingDisplay = equalWithLast ? "  ": $"{placing}.";
+
+					Console.WriteLine($"{placingDisplay} {name} (£{v:#.0}m)");
 				}
 			});
 		}
@@ -431,10 +452,17 @@ namespace fpli {
 			np.Reverse();
 
 			int placing = 0;
+			int lastPoints = 0;
 			np.ForEach(netPointEntry => {
 				if (++placing <= 3) {
 					var name = _standings.GetEntry(netPointEntry.Item3).player_name;
-					Console.WriteLine($"{placing}. {name}, {netPointEntry.Item1} pts (GW{netPointEntry.Item2})");
+
+					// Only show placing number if not equal with previous
+					bool equalWithLast = netPointEntry.Item1 == lastPoints;
+					lastPoints = netPointEntry.Item1;
+					var placingDisplay = equalWithLast ? "  ": $"{placing}.";
+
+					Console.WriteLine($"{placingDisplay} {name}, {netPointEntry.Item1} pts (GW{netPointEntry.Item2})");
 				}
 			});
 		}
