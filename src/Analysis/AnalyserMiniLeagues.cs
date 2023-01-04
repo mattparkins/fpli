@@ -210,11 +210,16 @@ namespace fpli {
 
 		private void _reportCaptaincyReturns() { 
 
+			// Should really cover VCs
+
 			int blanks = 0;
 			int rets = 0;
 
 			foreach(var kv in _fpl.Standings[_config.leagueId].Captaincy) {
-				int points = _fpl.Live.elements.Find(el => el.id == kv.Key).stats.total_points;
+
+				var captain = _fpl.Live.elements.Find(el => el.id == kv.Key);
+				int points = captain.stats.total_points;
+
 				if (points >= 4) {
 					rets += kv.Value.Count;
 				} else {
