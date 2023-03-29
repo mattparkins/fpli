@@ -1,5 +1,9 @@
 namespace fpli {
 
+    interface ICSVExportable {
+        void ToCSV(StreamWriter file, bool prependHeader = false); 
+    }
+
     public class ChipPlay
     {
         public string chip_name { get; set; }
@@ -161,7 +165,7 @@ namespace fpli {
         public int stop_event { get; set; }
     }
 
-    public class Team
+    public class Team : ICSVExportable
     {
         public int code { get; set; }
         public int draw { get; set; }
@@ -184,7 +188,14 @@ namespace fpli {
         public int strength_defence_home { get; set; }
         public int strength_defence_away { get; set; }
         public int pulse_id { get; set; }
-    }
+
+        public void ToCSV(StreamWriter file, bool prependHeader = false) {
+            if (prependHeader) {
+                file.WriteLine("name,short_name,strength,strength_overall_home,strength_overall_away,strength_attack_home,strength_attack_away,strength_defence_home,strength_defence_away");
+            }
+            file.WriteLine($"{name},{short_name},{strength},{strength_overall_home},{strength_overall_away},{strength_attack_home},{strength_attack_away},{strength_defence_home},{strength_defence_away}");
+        }
+	}
 
     public class TopElementInfo
     {

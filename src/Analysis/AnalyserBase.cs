@@ -22,6 +22,7 @@ namespace fpli {
 			switch (intent) {
 				case Intent.ExecuteMiniLeagueAnalysis:	return new MiniLeagueAnalyser(fpl, config);
 				case Intent.ExecuteFixtureAnalysis:		return new FixtureAnalyser(fpl, config);
+				case Intent.ExecuteExportForAI:			return new AnalyserExportForAI(fpl, config);
 			}
 			return null;
 		}

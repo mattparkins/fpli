@@ -6,7 +6,8 @@ namespace fpli {
         DisplayHelp,
         DisplayVersion,
         ExecuteMiniLeagueAnalysis,
-        ExecuteFixtureAnalysis
+        ExecuteFixtureAnalysis,
+        ExecuteExportForAI
     }
 
     public class Config {
@@ -32,6 +33,7 @@ namespace fpli {
 			Console.WriteLine(" --showVersion                           display the version number");
 			Console.WriteLine(" --leagueId <int>                        analyse this mini-league for stats");
             Console.WriteLine(" --executeFixtureAnalysis <int> <int>    analyse from this GW, this many fixtures for max win rate");
+            Console.WriteLine(" --executeExportForAI <int>              export data for AI analysis up to this GW");
 
             Console.WriteLine("\nGeneral settings");
             Console.WriteLine(" --callrate <float, default 1.0>         maxiumum calls per second");
@@ -51,6 +53,7 @@ namespace fpli {
 				case "--showVersion":               intent = Intent.DisplayVersion;            	break;
 				case "--leagueId":                  intent = Intent.ExecuteMiniLeagueAnalysis; 	break;
                 case "--executeFixtureAnalysis":    intent = Intent.ExecuteFixtureAnalysis;     break;
+                case "--exportForAI":               intent = Intent.ExecuteExportForAI;         break;
 			}
 
             // General options
@@ -69,6 +72,12 @@ namespace fpli {
                 gameweek = (p.Count >= 1) ? p[0] : 0;
                 fixtureCount = (p.Count >= 2) ? p[1] : 0;
                 fixturePicks = _retrieveVariableOptions<string>(args, "--previousPicks");
+            }
+
+            // Retrieve further settings
+			if (intent == Intent.ExecuteExportForAI) {
+                List<int> p = _retrieveVariableOptions<int>(args, "--exportForAI");
+                gameweek = (p.Count >= 1) ? p[0] : 0;
             }
 		}
 
