@@ -400,3 +400,5 @@ FodyWeavers.xsd
 
 # user ignores
 .cache
+.DS_Store
+data/.DS_Store
