@@ -24,7 +24,12 @@ echo "Running Fixture Predictor"
 # If from GW1: NEW, ARS then...
 # computed from GW3: che tot MCI liv mun whu 
 # 
-dotnet run --executeFixtureAnalysis 29 8
+
+# matt
+dotnet run --executeFixtureAnalysis 28 11 --previousPicks BHA MCI AVL
+
+# paul 
+dotnet run --executeFixtureAnalysis 28 11 --previousPicks BHA ARS AVL
 
 # Reduce ELO by draw %
 # Increase K factor to more favour form streams

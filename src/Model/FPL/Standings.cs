@@ -12,7 +12,7 @@ namespace fpli {
         public int start_event { get; set; }
         public string code_privacy { get; set; }
         public bool has_cup { get; set; }
-        public string cup_league { get; set; }
+        public int? cup_league { get; set; }
         public string rank { get; set; }
     }
 

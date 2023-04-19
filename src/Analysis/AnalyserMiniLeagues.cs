@@ -362,7 +362,7 @@ namespace fpli {
 			int lastPoints = 0;
 
 			_fpl.Managers.OrderByDescending(m => m.Value.SeasonPointsOnBench()).ToList().ForEach(manager => {
-				if (++placing <= 3) {
+				if (++placing <= 5) {
 					var name = _standings.GetEntry(manager.Value.GetEntryId).player_name;
 					var delta = manager.Value.GetBenchPoints;
 					var ds = delta > 0 ? $"+{delta}" : delta < 0 ? $"-{delta}" : "=";
@@ -386,7 +386,7 @@ namespace fpli {
 			int lastPoints = 0;
 
 			_fpl.Managers.OrderByDescending(m => m.Value.SeasonHits()).ToList().ForEach(manager => {
-				if (++placing <= 3) {
+				if (++placing <= 5) {
 					Result entry = _standings.GetEntry(manager.Value.GetEntryId);
 					var name = entry.player_name;
 					var tc = manager.Value.GetTransferCost;
@@ -428,7 +428,7 @@ namespace fpli {
 			int lastValue = 0;
 
 			_fpl.Managers.OrderByDescending(m => m.Value.GetCurrentTeamValue()).ToList().ForEach(manager => {
-				if (++placing <= 3) {
+				if (++placing <= 5) {
 					var name = _standings.GetEntry(manager.Value.GetEntryId).player_name;
 					float v = manager.Value.GetCurrentTeamValue()/10f;
 
@@ -459,7 +459,7 @@ namespace fpli {
 			int placing = 0;
 			int lastPoints = 0;
 			np.ForEach(netPointEntry => {
-				if (++placing <= 3) {
+				if (++placing <= 5) {
 					var name = _standings.GetEntry(netPointEntry.Item3).player_name;
 
 					// Only show placing number if not equal with previous
