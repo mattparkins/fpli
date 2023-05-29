@@ -360,8 +360,12 @@ namespace fpli {
 
 			int placing = 0;
 			int lastPoints = 0;
+			int leagueBenchPoints = 0;
 
 			_fpl.Managers.OrderByDescending(m => m.Value.SeasonPointsOnBench()).ToList().ForEach(manager => {
+
+				leagueBenchPoints += manager.Value.SeasonPointsOnBench();
+
 				if (++placing <= 5) {
 					var name = _standings.GetEntry(manager.Value.GetEntryId).player_name;
 					var delta = manager.Value.GetBenchPoints;
@@ -375,6 +379,12 @@ namespace fpli {
 					Console.WriteLine($"{placingDisplay} {name}, {manager.Value.SeasonPointsOnBench()} pts ({ds})");
 				}
 			});
+
+			// League average
+			double average = (double)leagueBenchPoints / (double)_fpl.Managers.Count;
+			Console.WriteLine("--");
+			Console.WriteLine($"League average: {average.ToString("0.00")} pts");
+			
 		}	
 
 
@@ -384,8 +394,12 @@ namespace fpli {
 
 			int placing = 0;
 			int lastPoints = 0;
+			int leagueHitPoints = 0;
 
 			_fpl.Managers.OrderByDescending(m => m.Value.SeasonHits()).ToList().ForEach(manager => {
+				
+				leagueHitPoints += manager.Value.SeasonHits();
+
 				if (++placing <= 5) {
 					Result entry = _standings.GetEntry(manager.Value.GetEntryId);
 					var name = entry.player_name;
@@ -400,6 +414,11 @@ namespace fpli {
 					Console.WriteLine($"{placingDisplay} {name}, -{manager.Value.SeasonHits()} pts ({tcs})");
 				}
 			});
+
+			// League average
+			double average = (double)leagueHitPoints / (double)_fpl.Managers.Count;
+			Console.WriteLine("--");
+			Console.WriteLine($"League average: -{average.ToString("0.00")} pts");
 		}
 
 
@@ -426,8 +445,12 @@ namespace fpli {
 
 			int placing = 0;
 			int lastValue = 0;
+			int leagueValue = 0;
 
 			_fpl.Managers.OrderByDescending(m => m.Value.GetCurrentTeamValue()).ToList().ForEach(manager => {
+
+				leagueValue += manager.Value.GetCurrentTeamValue();
+
 				if (++placing <= 5) {
 					var name = _standings.GetEntry(manager.Value.GetEntryId).player_name;
 					float v = manager.Value.GetCurrentTeamValue()/10f;
@@ -440,6 +463,11 @@ namespace fpli {
 					Console.WriteLine($"{placingDisplay} {name} (£{v:#.0}m)");
 				}
 			});
+
+			// League average
+			double average = (double)leagueValue / (double)_fpl.Managers.Count / 10d;
+			Console.WriteLine("--");
+			Console.WriteLine($"League average: £{average.ToString("0.0")}m");
 		}
 
 
