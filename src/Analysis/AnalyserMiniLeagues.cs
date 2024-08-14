@@ -366,7 +366,7 @@ namespace fpli {
 
 				leagueBenchPoints += manager.Value.SeasonPointsOnBench();
 
-				if (++placing <= 5) {
+				if (++placing <= 10) {
 					var name = _standings.GetEntry(manager.Value.GetEntryId).player_name;
 					var delta = manager.Value.GetBenchPoints;
 					var ds = delta > 0 ? $"+{delta}" : delta < 0 ? $"-{delta}" : "=";
@@ -430,6 +430,8 @@ namespace fpli {
 
 			if (nhcList.Count == 0) {
 				Console.WriteLine("(none)");
+			} else if (nhcList.Count > 9) {
+				Console.WriteLine($"{nhcList.Count} managers");
 			} else {
 				nhcList.ForEach(manager => {
 					var name = _standings.GetEntry(manager.Value.GetEntryId).player_name;

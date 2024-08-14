@@ -3,5 +3,5 @@ if [ ! -f README.md ]; then
     echo "Run from root folder!" >&2
     exit 1
 fi
-echo "Running LMS Summary"
-dotnet run --leagueId 323 --incManagersInCaptaincy
+echo "Running Pug Summary"
+dotnet run --leagueId 636791 --incManagersInCaptaincy

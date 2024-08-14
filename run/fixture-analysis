@@ -18,18 +18,13 @@ echo "Running Fixture Predictor"
 # dotnet run --executeFixtureAnalysis 1 6
 # dotnet run --executeFixtureAnalysis 1 8 --previousPicks AVL
 
-# Season 2022/23, Game 1
-# Manual pick of Villa failed
-# View from GW1: liv, mun would both fail
-# If from GW1: NEW, ARS then...
-# computed from GW3: che tot MCI liv mun whu 
-# 
+# Season 2023/24, Game 1
 
-# matt
-dotnet run --executeFixtureAnalysis 28 11 --previousPicks BHA MCI AVL
+# Matt
+dotnet run --executeFixtureAnalysis 1 10 
 
 # paul 
-dotnet run --executeFixtureAnalysis 28 11 --previousPicks BHA ARS AVL
+#dotnet run --executeFixtureAnalysis 24 3 --previousPicks TOT
 
 # Reduce ELO by draw %
 # Increase K factor to more favour form streams

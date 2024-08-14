@@ -51,7 +51,11 @@ namespace fpli {
 			EventStatus = await Fetcher.FetchAndDeserialise<EventStatus>(_cachePath+"event-status.json", _api+"event-status/", Utils.HoursAsSeconds(1));
 			
 			int gw = Bootstrap.GetCurrentGameweekId();
-			Live = await Fetcher.FetchAndDeserialise<Live>(_cachePath+"live_GW"+gw+".json", _api+"event/"+gw+"/live/", Utils.HoursAsSeconds(1));
+			if (gw < 1) {
+				Console.WriteLine("Currently in pre-seaason, skipping live data");
+			} else {
+				Live = await Fetcher.FetchAndDeserialise<Live>(_cachePath+"live_GW"+gw+".json", _api+"event/"+gw+"/live/", Utils.HoursAsSeconds(1));
+			}
 		}
 
 		public async Task LoadManager(int entryId) {

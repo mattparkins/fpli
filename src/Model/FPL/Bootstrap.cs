@@ -65,14 +65,14 @@ namespace fpli {
         public string creativity { get; set; }
         public string threat { get; set; }
         public string ict_index { get; set; }
-        public int influence_rank { get; set; }
-        public int influence_rank_type { get; set; }
-        public int creativity_rank { get; set; }
-        public int creativity_rank_type { get; set; }
-        public int threat_rank { get; set; }
-        public int threat_rank_type { get; set; }
-        public int ict_index_rank { get; set; }
-        public int ict_index_rank_type { get; set; }
+        public int? influence_rank { get; set; }
+        public int? influence_rank_type { get; set; }
+        public int? creativity_rank { get; set; }
+        public int? creativity_rank_type { get; set; }
+        public int? threat_rank { get; set; }
+        public int? threat_rank_type { get; set; }
+        public int? ict_index_rank { get; set; }
+        public int? ict_index_rank_type { get; set; }
         public int? corners_and_indirect_freekicks_order { get; set; }
         public string corners_and_indirect_freekicks_text { get; set; }
         public int? direct_freekicks_order { get; set; }

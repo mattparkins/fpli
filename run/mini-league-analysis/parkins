@@ -4,4 +4,4 @@ if [ ! -f README.md ]; then
     exit 1
 fi
 echo "Running Parkins & Fernando Summary"
-dotnet run --leagueId 135928 --incManagersInCaptaincy
+dotnet run --leagueId 28859 --incManagersInCaptaincy

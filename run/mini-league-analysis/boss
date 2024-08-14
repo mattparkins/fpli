@@ -4,4 +4,4 @@ if [ ! -f README.md ]; then
     exit 1
 fi
 echo "Running 'Our Boss' think we're working' Summary"
-dotnet run --leagueId 66372 --maxManagers 100
+dotnet run --leagueId 215362 --maxManagers 100
