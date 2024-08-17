@@ -1,7 +1,0 @@
-#!/bin/zsh
-if [ ! -f README.md ]; then
-    echo "Run from root folder!" >&2
-    exit 1
-fi
-echo "Running Pug Summary"
-dotnet run --leagueId 636791 --incManagersInCaptaincy

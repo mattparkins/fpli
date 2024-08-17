@@ -21,7 +21,7 @@ echo "Running Fixture Predictor"
 # Season 2023/24, Game 1
 
 # Matt
-dotnet run --executeFixtureAnalysis 1 10 
+dotnet run --executeFixtureAnalysis 1 9 
 
 # paul 
 #dotnet run --executeFixtureAnalysis 24 3 --previousPicks TOT
