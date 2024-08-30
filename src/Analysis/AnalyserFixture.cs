@@ -45,6 +45,7 @@ namespace fpli {
 		int[] _minStrength = new int[2];
 		int[] _maxStrength = new int[2];
 		int[] _forcedMoves;
+		int[] _excludedTeams;
 
 		double[,] we = new double[21,21];	// 0,0 team id's are one-indexed
 		double[,] teamFixtureWE;			// gameweek, teamid
@@ -102,14 +103,33 @@ namespace fpli {
 			}
 		}
 
+		// Build the exclude teams array
+
+		private void _buildExcludedTeams() {
+			_excludedTeams = new int[_config.excludeTeams.Count];
+			for (int i = 0; i < _config.excludeTeams.Count; i++) {
+				_excludedTeams[i] = _fpl.Bootstrap.teams.Find(t => t.short_name == _config.excludeTeams[i])?.id ?? 0;
+				if (_excludedTeams[i] == 0) {
+					Program.Quit($"Exclude Team {_config.excludeTeams[i]} not recognised.");
+				}
+			}
+		}
+
 		public override void Analyse() {
 			_calculateTeamStrengths();
 			_buildForcedMoves();
+			_buildExcludedTeams();
 
 			analysisStart = DateTime.UtcNow;
 			Console.WriteLine($"\nEngine started {analysisStart.ToShortTimeString()}\n");
 
-			const int resetBoard = (1 << 21) -2; // 0x1FFFFE, 20 bits set, offset by 1
+			// "Play" excluded teams by marking them as used in the resetBoard
+			int resetBoard = (1 << 21) -2; // 0x1FFFFE, 20 bits set, offset by 1
+
+			for (int i = 0; i < _excludedTeams.Length; i++) {
+				resetBoard &= ~(1 << _excludedTeams[i]);
+			}
+
 			Int64 nodes = 0;
 			TeamScoreEval[] bestLine = null;
 
@@ -143,6 +163,7 @@ namespace fpli {
 					eval[depth].eval = 1f;
 					board[depth] = board[depth +1] & ~(1 << teamId);
 				} 
+
 				
 				// Set up the "board"
 

@@ -23,7 +23,8 @@ namespace fpli {
         // Fixture analysis options
         public int gameweek                 { get; private set; } = 0;      // Which gameweek to target
         public int fixtureCount             { get; private set; } = 0;      // Number of fixtures to analyse
-        public List<string> fixturePicks    { get; set;}                    // fixture analysis, which 
+        public List<string> fixturePicks    { get; set;}                    // fixture analysis, teams have already picked successfully 
+        public List<string> excludeTeams    { get; set;}                    // fixture analysis, which teams to exclude
 
 
         public static void displayHelp() {
@@ -44,6 +45,7 @@ namespace fpli {
 
             Console.WriteLine("\nFixture analysis options");
 			Console.WriteLine(" --previousPicks <string>...             picks so far, one per gameweek ");
+            Console.WriteLine(" --excludeTeams <string>...              teams to exclude from analysis");
 		}
         
 
@@ -72,6 +74,7 @@ namespace fpli {
                 gameweek = (p.Count >= 1) ? p[0] : 0;
                 fixtureCount = (p.Count >= 2) ? p[1] : 0;
                 fixturePicks = _retrieveVariableOptions<string>(args, "--previousPicks");
+                excludeTeams = _retrieveVariableOptions<string>(args, "--excludeTeams");
             }
 
             // Retrieve further settings
