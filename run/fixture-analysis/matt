@@ -1,0 +1,39 @@
+#!/bin/zsh
+if [ ! -f README.md ]; then
+    echo "Run from project root folder!" >&2
+    exit 1
+fi
+
+echo "Running Fixture Predictor"
+
+# variables are  
+# --executeFixtureAnalysis <first gameweek> <number of gameweeks to analyse>
+# --previousPicks <team names/abbreviations that were used from the first gameweek onewards>...
+#
+# for instance:
+# dotnet run --executeFixtureAnalysis 1 8 --previousPicks AVL LIV
+#
+# starts the analysis starting in GW1, covering 8 gameweeks (so GW1-GW8) 
+# with GW1 being fixed on AVL and GW2 on LIV
+# dotnet run --executeFixtureAnalysis 1 6
+# dotnet run --executeFixtureAnalysis 1 8 --previousPicks AVL
+
+# Season 2023/24, Game 1
+
+# Matt
+# GW2 Depth 10, best 0.061:  ARS 1.000  TOT 0.802  BRE 0.534  che 0.404  LIV 0.355  BOU 0.215  LEI 0.155  MUN 0.110  MCI 0.098  SOU 0.061 
+# GW2 Depth 8, best 0.147:  ARS 1.000  TOT 0.802  BRE 0.534  che 0.404  LEI 0.293  liv 0.242  MCI 0.206  MUN 0.147 
+# GW2 Depth 6, best 0.285:  ARS 1.000  TOT 0.802  CHE 0.574  MCI 0.476  LEI 0.345  liv 0.285  
+dotnet run --executeFixtureAnalysis 1 12 --previousPicks ARS LIV MCI
+
+# Jo
+# GW2 Depth 6, best 0.300:  NEW 1.000  TOT 0.802  CHE 0.574  MCI 0.476  LIV 0.418  ARS 0.300
+# GW2 Depth 8, best 0.169:  NEW 1.000  TOT 0.802  BRE 0.534  che 0.404  LEI 0.293  liv 0.242  ARS 0.200  mci 0.169
+# GW2 Depth 10, best 0.079:  NEW 1.000  TOT 0.802  BRE 0.534  che 0.404  LEI 0.293  liv 0.242  ARS 0.200  MUN 0.142  MCI 0.127  SOU 0.079
+# dotnet run --executeFixtureAnalysis 1 11 --previousPicks NEW TOT BRE
+
+# paul 
+# dotnet run --executeFixtureAnalysis 1 11 --previousPicks NEW MCI  --excludeTeams BRE EVE SOU IPS LEI
+
+# Reduce ELO by draw %
+# Increase K factor to more favour form streams

@@ -18,9 +18,9 @@ namespace fpli {
 
     public class NewEntries
     {
-        public bool has_next { get; set; }
-        public int page { get; set; }
-        public List<string> results { get; set; }
+        // public bool has_next { get; set; }
+        // public int page { get; set; }
+        // public List<string> results { get; set; }
     }
 
     public class Result

@@ -113,8 +113,8 @@ namespace fpli {
 				Element captain = _fpl.Bootstrap.GetElement(kv.Key);
 				_sb.Append($"{kv.Value.Count, 4} {captain.web_name}");
 
-				if (_config.incManagersInCaptaincy) {
-					string glue = ": ";
+				if (_config.incManagersInCaptaincy || kv.Value.Count == 1) {
+					string glue = " (";
 
 					kv.Value.ForEach(entryId => {
 						Manager manager = _fpl.Managers[entryId];
@@ -123,7 +123,7 @@ namespace fpli {
 						glue = ", ";
 					});
 					
-					_sb.Append(".");
+					_sb.Append(")");
 				}
 
 				Console.WriteLine(_sb.ToString());
