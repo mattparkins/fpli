@@ -1,3 +1,6 @@
+using System.Text;
+using Spectre.Console;
+
 namespace fpli {
 
 	public enum Venue {
@@ -167,19 +170,21 @@ namespace fpli {
 			TimeSpan diff = DateTime.UtcNow.Subtract(analysisStart);
 			double nps = mn / diff.TotalSeconds;
 
-			Console.Write($"{diff.TotalSeconds,4:0.0}s Depth {depth}, best {line[depth-1].eval:0.000}:");
+			_sb.Clear();
+			_sb.Append($"{diff.TotalSeconds,4:0.0}s Depth {depth}, best {line[depth-1].eval:0.000}:");
 			for (int i = 0; i < depth; i++) {
 				string teamName = _fpl.Bootstrap.teams.Find(t => t.id == line[i].team).short_name;
 				
 				// is this team away?  If so lowercase it.
-				if (_fpl.Fixtures[_config.gameweek +depth -i -1].FindIndex(fix => fix.team_a == line[i].team) != -1) {
+				if (_fpl.Fixtures[_config.gameweek +i].FindIndex(fix => fix.team_a == line[i].team) != -1) {
 					teamName = teamName.ToLower();
 				}
 				
-				Console.Write($"  {teamName} {line[i].eval:0.000}");
+				_sb.Append($"  {teamName} {line[i].eval:0.000}");
 			}
 			
-			Console.WriteLine($"  ({mn:0.00}m nodes at {nps:0.0}m/s)");
+			_sb.Append($"  ({mn:0.00}m nodes at {nps:0.0}m/s)");
+			AnsiConsole.MarkupLine(_sb.ToString());
 		}
 
 
@@ -259,48 +264,70 @@ namespace fpli {
 					availableTeams[currentDepth +1] = availableTeams[currentDepth] & ~(1 << teamId);
 				}
 
-				// Parallel For loop iterates through the root moves.
-				// For ease of development and bug prevention, we'll place as much as we can into a function
+				// Create the progress bar 
 
-				//Parallel.For(1, 21, parallelOptions, (rootMoveIndex) => {
-				Parallel.For(1, 21, (rootMoveIndex) => {
-
-					// If  this team already been played or excluded then skip it
-
-					if ((availableTeams[currentDepth] & (1 << rootMoveIndex)) == 0) {
-						return;
-					}
-
-					// Set off the analysis for this branch
-
-					(TeamScoreEval[] branchEval, Int64 branchNodes) = _analyseFixtures(availableTeams[currentDepth], rootMoveIndex, currentDepth, targetDepth);	
+				AnsiConsole.Progress()
+					.AutoClear(true)   		// Do not remove the task list when done
+					.HideCompleted(true)   	// Hide tasks as they are completed
+					.Start(ctx => {
 					
-					TeamScoreEval[] fullBranchEval = eval.Clone() as TeamScoreEval[];
-					Array.Copy(branchEval, 0, fullBranchEval, currentDepth, branchEval.Length);
-
-					// Lock for sync
-
-					lock (lockO) {
-						nodes += branchNodes;
-						
-						if (fullBranchEval[targetDepth -1].eval > bestScore) {
-							_displayLine(fullBranchEval, targetDepth, branchNodes);
-							bestScore = fullBranchEval[targetDepth -1].eval;
-							bestLine = fullBranchEval.Clone() as TeamScoreEval[];
+					// Create a task for each parallel element
+					var progressBars = new Dictionary<int, ProgressTask>();
+					for (int i = 1; i <= 20; i++) {
+						if ((availableTeams[currentDepth] & (1 << i)) != 0) {
+							string teamName = _fpl.Bootstrap.teams.Find(t => t.id == i).short_name;
+							progressBars.Add(i, ctx.AddTask($"{i} {teamName}", autoStart: true));
+						} else {
+							progressBars.Add(i, null);
 						}
 					}
+
+					// Parallel For loop iterates through the root moves.
+					// For ease of development and bug prevention, we'll place as much as we can into a function
+
+					Parallel.For(1, 21, (rootMoveIndex) => {
+
+						// If  this team already been played or excluded then skip it
+
+						if ((availableTeams[currentDepth] & (1 << rootMoveIndex)) == 0) {
+							return;
+						}
+
+						// Set off the analysis for this branch
+
+						(TeamScoreEval[] branchEval, Int64 branchNodes) = _analyseFixtures(availableTeams[currentDepth], rootMoveIndex, currentDepth, targetDepth, progressBars[rootMoveIndex]);	
+
+						// Lock for sync
+
+						lock (lockO) {
+
+							TeamScoreEval[] fullBranchEval = eval.Clone() as TeamScoreEval[];
+							Array.Copy(branchEval, 0, fullBranchEval, currentDepth, branchEval.Length);
+
+							nodes += branchNodes;
+							
+							if (fullBranchEval[targetDepth -1].eval > bestScore) {
+								bestScore = fullBranchEval[targetDepth -1].eval;
+								bestLine = fullBranchEval.Clone() as TeamScoreEval[];
+							}
+						}
+					});
+
+					// Finish the progress bars
+					foreach (var (tid,bar) in progressBars) {
+						bar?.StopTask();
+					}
+
+					_displayLine(bestLine, targetDepth, nodes);
 				});
-
-				Console.WriteLine($"Depth {targetDepth} complete, {nodes/1_000_000}m nodes visited.\n");
 			}
-
-			Console.WriteLine("---\nSearch Complete.  Best Line:");
-			_displayLine(bestLine, targetDepth -1, nodes);
+			
+			AnsiConsole.MarkupLine("---Search Complete");
 		}
 
 
 		// Analyse the fixtures for a specific team from and to specific depths
-		public (TeamScoreEval[] branchEval, Int64 branchNodes) _analyseFixtures(int teamsFlag, int rootMoveIndex, int entryDepth, int targetDepth) {
+		public (TeamScoreEval[] branchEval, Int64 branchNodes) _analyseFixtures(int teamsFlag, int rootMoveIndex, int entryDepth, int targetDepth, ProgressTask bar) {
 
 			double bestScore = 0;
 			TeamScoreEval[] bestLine;
@@ -334,6 +361,14 @@ namespace fpli {
 				branchEval[1].team = 0;
 				availableTeams[1] = availableTeams[0] & ~(1 << branchEval[0].team);
 
+				// Calculate how many progress updates we'll have - if we do just the one update
+				// per root move we won't put too much pressure on the UI thread.  The number of
+				// updates is simply the hamming weight
+
+				double barInc = (1.0 / (Utils.HammingWeight(availableTeams[1]) +1)) * 100.0;
+				int lastUpdateTeam = 0;
+				
+
 				while (branchEval[1].team <= 20) {
 					branchNodes++;
 
@@ -356,6 +391,14 @@ namespace fpli {
 							}
 
 						} else {
+
+							// Update the progress bar if need be
+							
+							if (localDepth <= 1 && lastUpdateTeam != branchEval[1].team) {
+								bar?.Increment(barInc);
+								lastUpdateTeam = branchEval[1].team;
+							}
+
 							// This node is not a leaf - prepare to go deeper.
 							// Remove the played team from the next depth's available teams
 							// Reset the next depth's team index
@@ -371,138 +414,13 @@ namespace fpli {
 						localDepth--;
 					}
 				}
+
+				bar?.Increment(barInc);
 			}
 				
-
 			// return eval and nodes
 			return (bestLine, branchNodes);
 		}
-
-
-		// public override void Analyse() {
-		// 	_calculateTeamStrengths();
-		// 	_buildForcedMoves();
-		// 	_buildExcludedTeams();
-
-		// 	analysisStart = DateTime.UtcNow;
-		// 	Console.WriteLine($"\nEngine started {analysisStart.ToShortTimeString()}\n");
-
-		// 	// "Play" excluded teams by marking them as used in the resetBoard.
-		// 	// A team has been played when the bit index (1 << teamID) is set to zero.
-
-		// 	int resetBoard = (1 << 21) -2; // 0x1FFFFE, 20 bits set, offset by 1
-
-		// 	// Exclude teams based on the config - set their bits to zero
-		// 	for (int i = 0; i < _excludedTeams.Length; i++) {
-		// 		resetBoard &= ~(1 << _excludedTeams[i]);
-		// 	}
-				
-		// 	Int64 nodes = 0;					// Number of nodes visited
-		// 	TeamScoreEval[] bestLine = null;	// Best line found so far
-
-		// 	// Forced moves are the moves that have already been played by the user in the game
-		// 	// as taken from the config.  We will play these moves first and then our analysis
-		// 	// begins after those moves.
-
-		// 	int forcedMoveCount = _config.fixturePicks.Count; 	// The number of moves already played by the user
-		// 	int minimumDepth = forcedMoveCount +1;				// The starting depth for our analysis
-		// 	int targetDepth = minimumDepth -1;					// The target depth, incremented each time we complete a depth
-
-		// 	// While loop iterates from the minimum depth to the maximum depth
-		// 	// Essentially, we repeat the analysis for each depth.
-
-		// 	while (++targetDepth <= _config.fixtureCount) {
-				
-		// 		// Initialise engine - set up the engine each time we increase the target depth
-		// 		// So for an 8 deep search with no forced moves, we would set the engine up 8 times total.
-
-		// 		// The board is an array where each element represents the available teams at a specific depth.
-		// 		// If a bit is set to 1 in board[i], that team is available for selection at depth i.
-		// 		// If a bit is cleared to 0, that team has already been used at this depth or a higher depth.
-
-		// 		int[] availableTeams = new int[targetDepth +1];  
-		// 		for (int i = 0; i <= targetDepth; i++) {
-		// 			availableTeams[i] = resetBoard;
-		// 		}
-				
-		// 		// moveStack tracks the current team being considered for selection at each depth.
-		// 		// Each element represents the team ID currently under consideration at that depth.
-
-		// 		int[] moveStack = new int[targetDepth];
-
-		// 		// Eval represents the score at the current depth, all subsequent depths are based on this score
-		// 		// It starts at 1.0 and is multiplied by the win expectancy of the team being considered at each 
-		// 		// depth, thus reducing the score (the chance of winning every game) as we go deeper into the tree.
-
-		// 		TeamScoreEval[] eval = new TeamScoreEval[targetDepth +1];
-		// 		eval[targetDepth].eval = 1;
-
-		// 		// depth is the current depth of the search.  It will be reduced to zero as we apply forced moves
-		// 		// and then increased as we iterate through the search tree.
-
-		// 		int currentDepth = targetDepth;
-
-		// 		// Apply forced moves in reverse, starting from the current targetDepth and working backward.
-
-		// 		while (currentDepth > targetDepth - forcedMoveCount) {
-		// 			int teamId = _forcedMoves[targetDepth - currentDepth];
-		// 			currentDepth--;
-		// 			eval[currentDepth].team = teamId;
-		// 			eval[currentDepth].eval = 1f;
-		// 			availableTeams[currentDepth] = availableTeams[currentDepth +1] & ~(1 << teamId);
-		// 		} 
-
-		// 		// availableTeams is copied from the previous depth
-
-		// 		double bestScore = 0;
-		// 		currentDepth--;
-		// 		availableTeams[currentDepth] = availableTeams[currentDepth +1];
-
-		// 		// Iterate through root moves - a prime candidate for parallelisation
-
-		// 		int rootDepth = currentDepth;
-		// 		while (moveStack[rootDepth] < 20) {
-					
-		// 			while (moveStack[currentDepth] < 20) {
-
-		// 				// Go the next move
-		// 				++nodes;
-		// 				++moveStack[currentDepth];
-						
-		// 				// Has this team already been used ?
-		// 				if ((availableTeams[currentDepth] & (1 << moveStack[currentDepth])) != 0) { 
-							
-		// 					// No, so add to the eval and make the move 
-		// 					eval[currentDepth].team = moveStack[currentDepth];											// Add team to the eval
-		// 					double newEval = teamFixtureWE[targetDepth -currentDepth, moveStack[currentDepth]];
-		// 					eval[currentDepth].eval = eval[currentDepth +1].eval * newEval;								// Multiply the score in
-		// 					availableTeams[currentDepth] = availableTeams[currentDepth +1] & ~(1 << moveStack[currentDepth]);						// Mark team as used
-
-		// 					// If we're not at the leaf we need to advance deeper
-		// 					if (currentDepth > 0) {
-		// 						currentDepth--;
-		// 						moveStack[currentDepth] =0;
-		// 						availableTeams[currentDepth] = availableTeams[currentDepth +1];
-		// 					} else {
-		// 						// If we're at the leaf, check if it's a new best score
-		// 						if (eval[currentDepth].eval > bestScore) {
-		// 							bestScore = eval[currentDepth].eval;	// New high, this won't be executed often at all
-		// 							bestLine = (TeamScoreEval[]) eval.Clone();
-		// 							_displayLine(bestLine, targetDepth, nodes);
-		// 						}
-		// 					}
-		// 				}
-		// 			}
-
-		// 			//We've finished this depth's moves, move higher
-		// 			currentDepth++;
-		// 		}
-		// 	}
-
-		// 	// We're done, show the final line.
-		// 	Console.WriteLine("---\nSearch Complete.  Best Line:");
-		// 	_displayLine(bestLine, targetDepth -1, nodes);
-		// }
 	}
 
 	public struct TeamScoreEval {
