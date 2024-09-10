@@ -348,7 +348,7 @@ namespace fpli {
 			// Play this branch's root move
 			int localDepth = 0;
 			branchEval[localDepth].team = rootMoveIndex;
-			branchEval[localDepth].eval = teamFixtureWE[entryDepth, rootMoveIndex];
+			branchEval[localDepth].eval = teamFixtureWE[entryDepth +1, rootMoveIndex]; // 1-indexed, the first gameweek(GW1) is index 1
 			availableTeams[localDepth] = teamsFlag;
 			localDepth++;
 			branchNodes++;
@@ -388,10 +388,10 @@ namespace fpli {
 
 					// If this node is a valid team then evaluate this node.
 					if (branchEval[localDepth].team <= 20) {
-						branchEval[localDepth].eval = branchEval[localDepth -1].eval * teamFixtureWE[entryDepth + localDepth, branchEval[localDepth].team];
+						branchEval[localDepth].eval = branchEval[localDepth -1].eval * teamFixtureWE[entryDepth + localDepth +1, branchEval[localDepth].team];
 
 						// If this node is a leaf then evaluate against the best line
-						if (localDepth == localTargetDepth) {
+						if (localDepth +1 == localTargetDepth) {
 
 							if (branchEval[localDepth].eval > bestScore) {
 								bestScore = branchEval[localDepth].eval;
