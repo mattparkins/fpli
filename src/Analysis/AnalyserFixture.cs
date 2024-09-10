@@ -271,10 +271,18 @@ namespace fpli {
 					.HideCompleted(true)   	// Hide tasks as they are completed
 					.Start(ctx => {
 					
+					// How many nodes are we searching?  Think we need at least 100m nodes to make it 
+					// worth showing the progress bars
+
+					Int64 anticipatedNodes = 5;
+					for (int i = currentDepth; i < targetDepth; i++) {
+						anticipatedNodes *= 20 - currentDepth - _excludedTeams.Count();
+					}
+
 					// Create a task for each parallel element
 					var progressBars = new Dictionary<int, ProgressTask>();
 					for (int i = 1; i <= 20; i++) {
-						if ((availableTeams[currentDepth] & (1 << i)) != 0) {
+						if (anticipatedNodes > 200_000_000 && (availableTeams[currentDepth] & (1 << i)) != 0) {
 							string teamName = _fpl.Bootstrap.teams.Find(t => t.id == i).short_name;
 							progressBars.Add(i, ctx.AddTask($"{i} {teamName}", autoStart: true));
 						} else {
@@ -365,7 +373,7 @@ namespace fpli {
 				// per root move we won't put too much pressure on the UI thread.  The number of
 				// updates is simply the hamming weight
 
-				double barInc = (1.0 / (Utils.HammingWeight(availableTeams[1]) +1)) * 100.0;
+				double barInc = 1.0 / (Utils.HammingWeight(availableTeams[1]) +1) * 100.0;
 				int lastUpdateTeam = 0;
 				
 
