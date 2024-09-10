@@ -130,9 +130,6 @@ namespace fpli {
 			double homeRating = homeElo.Rating;
 			double dr = awayRating - homeRating;
 			double we = 1.0/(Math.Pow(10.0, dr/400.0) +1.0);
-
-			// Dampen WE by the proportion of win-draw points
-			//we *= (homeElo.DrawForm / homeElo.WinForm *.5) +1.0;
 			
 			return we;
 		}
@@ -149,8 +146,6 @@ namespace fpli {
 			double homeRating = homeElo.Rating;
 			double dr = homeRating - awayRating;
 			double we = 1.0/(Math.Pow(10.0, dr/400.0) +1.0);
-
-			//we *= awayElo.DrawForm / awayElo.WinForm;
 
 			return we;
 		}

@@ -4,9 +4,7 @@ namespace fpli {
 		public double K 		{ get; private set; }
 
 		private double _initialRating;
-		public double WinForm 	{ get; private set; }
-		public double DrawForm 	{ get; private set; }
-
+		
 		const double _formEroder = 0.96;
 
 		public Elo(double initialRating = 1200.0) {
@@ -22,38 +20,36 @@ namespace fpli {
 			Rating += hdiff;
 
 			if (K > EloManager.K) {
-				K *= 0.95;
+				K *= 0.85;
 			}
 
 			if (K < EloManager.K) {
 				K = EloManager.K;
 			}
 
-			if (outcome >= 0.9) {
-				WinForm += 1.0;
-				WinForm *= _formEroder;
-				DrawForm *= _formEroder;
-			}
+			// if (outcome >= 1.0) {
+			// 	WinForm += 1.0;
+			// 	WinForm *= _formEroder;
+			// 	DrawForm *= _formEroder;
+			// }
 
-			if (outcome >= 0.4 && outcome <= 0.6) {
-				DrawForm += 1.0;
-				WinForm *= _formEroder;
-				DrawForm *= _formEroder;
-			}
+			// if (outcome >= 0.4 && outcome <= 0.6) {
+			// 	WinForm *= _formEroder;
+			// 	DrawForm *= _formEroder;
+			// }
 
 			return hdiff;
 		}
 
 		// Team will have an artificially low ELO having been relegated so we need to account 
 		// for the rebuild that got them promoted and the initial energy that promoted teams bring
-		public void Promoted() {
+		public void Promoted(double initialRating = 1200.0) {
 			
 			// Boost the initial rating and their current rating
-			double diff = _initialRating - Rating;
-			Rating += diff / 4.0;
+			Rating = _initialRating = initialRating;
 
 			// Increase the K to account for uncertainty
-			K = EloManager.K * 2;
+			K = EloManager.K;
 		}
 	}
 
@@ -61,7 +57,7 @@ namespace fpli {
 		
 		public static Dictionary<Venue, Dictionary<int, Elo>> TeamElo {get; private set; } = new();		// Persistent club code, elo
 		public static double K {get; private set;}
-		private static int _highestHistoricalSeason = 0;
+		private static int _highestHistoricalSeason = 0, _lowestHistoricalSeason = 99999999;
 		
 		public static void Initialise(double k) {
 			TeamElo[Venue.HOME] = new();
@@ -71,14 +67,20 @@ namespace fpli {
 			History history = FPLData.Instance.History;
 			foreach (var kv in history.Bootstrap) {
 				Console.WriteLine($"TeamElo processing {kv.Key} season");
-				_processSeason(kv.Key);
 
 				if (kv.Key > _highestHistoricalSeason) {
 					_highestHistoricalSeason = kv.Key;
 				}
+
+				if (kv.Key < _lowestHistoricalSeason) {
+					_lowestHistoricalSeason = kv.Key;
+				}
+
+				
+				_processSeason(kv.Key);
 			}
 
-			_processSeason(0);	
+			//_processSeason(0);	
 		}
 
 
@@ -102,18 +104,20 @@ namespace fpli {
 				seasonFixtures = history.Fixtures[season];
 			}
 
+			bool isFirstSeasonOfData = (season == _lowestHistoricalSeason);
+
 			// Add teams new to the PL
 			bootstrap.teams.ForEach(team => {
 				bool wasPromoted = (previousBootstrap?.teams.Find(t => t.code == team.code) == null);
 
 				if (!TeamElo[Venue.HOME].ContainsKey(team.code)) {
 					Console.WriteLine($"    Adding {team.name}");
-					TeamElo[Venue.HOME][team.code] = new Elo();
-					TeamElo[Venue.AWAY][team.code] = new Elo();
+					TeamElo[Venue.HOME][team.code] = new Elo(isFirstSeasonOfData ? 1200 : 1000);
+					TeamElo[Venue.AWAY][team.code] = new Elo(isFirstSeasonOfData ? 1200 : 900);
 				} else if (wasPromoted) {
 					Console.WriteLine($"    Adjusting promoted old team {team.name}");
-					TeamElo[Venue.HOME][team.code].Promoted();
-					TeamElo[Venue.AWAY][team.code].Promoted();
+					TeamElo[Venue.HOME][team.code].Promoted(isFirstSeasonOfData ? 1200 : 1050);
+					TeamElo[Venue.AWAY][team.code].Promoted(isFirstSeasonOfData ? 1200 : 950);
 				}
 			});
 
@@ -143,7 +147,7 @@ namespace fpli {
 		private static void _processResult(int season, int hcode, int acode, int hscore, int ascore) {
 			double hr = TeamElo[Venue.HOME][hcode].Rating;
 			double ar = TeamElo[Venue.AWAY][acode].Rating;
-			double hsc = hscore > ascore ? 1.0 : hscore == ascore ? 0.5 : 0.0;
+			double hsc = hscore > ascore ? 1.0 : 0.0;
 
 			double hdiff = TeamElo[Venue.HOME][hcode].NewMatch(ar, 	hsc);
 			double adiff = TeamElo[Venue.AWAY][acode].NewMatch(hr, 1.0-hsc);
