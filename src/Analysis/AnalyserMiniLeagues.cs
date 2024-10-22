@@ -92,7 +92,7 @@ namespace fpli {
 
 						Manager manager = _fpl.Managers[entryId];
 						Result result = _fpl.Standings[_config.leagueId].standings.results.Find(r => r.entry == entryId);
-						Console.Write($"{glue}{result.player_name}");
+						Console.Write($"{glue}{Utils.StandardiseName(result.player_name)}");
 						glue = ", ";
 					});
 					Console.WriteLine(")");
@@ -119,7 +119,7 @@ namespace fpli {
 					kv.Value.ForEach(entryId => {
 						Manager manager = _fpl.Managers[entryId];
 						Result result = _fpl.Standings[_config.leagueId].standings.results.Find(r => r.entry == entryId);
-						_sb.Append($"{glue}{result.player_name}");
+						_sb.Append($"{glue}{Utils.StandardiseName(result.player_name)}");
 						glue = ", ";
 					});
 					
@@ -159,7 +159,7 @@ namespace fpli {
 					}
 
 					Result result = _fpl.Standings[_config.leagueId].standings.results.Find(r => r.entry == kv.Value.GetEntryId);
-					Console.Write(glue + result.player_name);
+					Console.Write(glue + Utils.StandardiseName(result.player_name));
 					glue = ", ";
 				}
 				Console.WriteLine(")");
@@ -178,7 +178,7 @@ namespace fpli {
 
 			_fpl.Managers.Where(m => m.Value.GetNetPoints == mostPoints).ToList().ForEach(m => {
 				var e = _standings.GetEntry(m.Value.GetEntryId);
-				Console.Write(", "+e.player_name);
+				Console.Write(", "+Utils.StandardiseName(e.player_name));
 			});
 
 			Console.WriteLine(".");
@@ -196,7 +196,7 @@ namespace fpli {
 
 			_fpl.Managers.Where(m => m.Value.GetNetPoints == lowestPoints).ToList().ForEach(m => {
 				var e = _standings.GetEntry(m.Value.GetEntryId);
-				Console.Write(", "+e.player_name);
+				Console.Write(", "+Utils.StandardiseName(e.player_name));
 			});
 
 			Console.WriteLine(".");
@@ -248,7 +248,7 @@ namespace fpli {
 
 			_fpl.Managers.Where(m => m.Value.GetBenchPoints == mostPoints).ToList().ForEach(m => {
 				var e = _standings.GetEntry(m.Value.GetEntryId);
-				Console.Write(", "+e.player_name+"\n");
+				Console.Write(", "+Utils.StandardiseName(e.player_name)+"\n");
 
 				var man =_fpl.Managers[e.entry];
 				List<int> bench = new();
@@ -274,7 +274,7 @@ namespace fpli {
 			if (list.Count == 1) {
 				list.ForEach(m => {
 					var e = _standings.GetEntry(m.Value.GetEntryId);
-					Console.WriteLine("  "+e.player_name+":");
+					Console.WriteLine("  "+Utils.StandardiseName(e.player_name)+":");
 					
 					var man =_fpl.Managers[e.entry];
 					List<int> ins = new();
@@ -290,7 +290,7 @@ namespace fpli {
 			} else {
 				list.ForEach(m => {
 					var e = _standings.GetEntry(m.Value.GetEntryId);
-					Console.Write("\n  "+e.player_name+"\n");
+					Console.Write("\n  "+Utils.StandardiseName(e.player_name)+"\n");
 
 					var man =_fpl.Managers[e.entry];
 					List<int> ins = new();
@@ -316,7 +316,7 @@ namespace fpli {
 			if (list.Count == 1) {
 				list.ForEach(m => {
 					var e = _standings.GetEntry(m.Value.GetEntryId);
-					Console.Write(", "+e.player_name+"\n");
+					Console.Write(", "+Utils.StandardiseName(e.player_name)+"\n");
 
 					var man =_fpl.Managers[e.entry];
 					List<int> ins = new();
@@ -332,7 +332,7 @@ namespace fpli {
 			} else {
 				list.ForEach(m => {
 					var e = _standings.GetEntry(m.Value.GetEntryId);
-					Console.Write("\n  "+e.player_name+"\n");
+					Console.Write("\n  "+Utils.StandardiseName(e.player_name)+"\n");
 
 					var man =_fpl.Managers[e.entry];
 					List<int> ins = new();
@@ -376,7 +376,7 @@ namespace fpli {
 					lastPoints = manager.Value.SeasonPointsOnBench();
 					var placingDisplay = equalWithLast ? "  ": $"{placing}.";
 
-					Console.WriteLine($"{placingDisplay} {name}, {manager.Value.SeasonPointsOnBench()} pts ({ds})");
+					Console.WriteLine($"{placingDisplay} {Utils.StandardiseName(name)}, {manager.Value.SeasonPointsOnBench()} pts ({ds})");
 				}
 			});
 
@@ -411,7 +411,7 @@ namespace fpli {
 					lastPoints = manager.Value.SeasonHits();
 					var placingDisplay = equalWithLast ? "  ": $"{placing}.";
 
-					Console.WriteLine($"{placingDisplay} {name}, -{manager.Value.SeasonHits()} pts ({tcs})");
+					Console.WriteLine($"{placingDisplay} {Utils.StandardiseName(name)}, -{manager.Value.SeasonHits()} pts ({tcs})");
 				}
 			});
 
@@ -435,7 +435,7 @@ namespace fpli {
 			} else {
 				nhcList.ForEach(manager => {
 					var name = _standings.GetEntry(manager.Value.GetEntryId).player_name;
-					Console.WriteLine($"{name}");
+					Console.WriteLine($"{Utils.StandardiseName(name)}");
 				});
 			}
 		}
@@ -462,7 +462,7 @@ namespace fpli {
 					lastValue = manager.Value.GetCurrentTeamValue();
 					var placingDisplay = equalWithLast ? "  ": $"{placing}.";
 
-					Console.WriteLine($"{placingDisplay} {name} (£{v:#.0}m)");
+					Console.WriteLine($"{placingDisplay} {Utils.StandardiseName(name)} (£{v:#.0}m)");
 				}
 			});
 
@@ -497,7 +497,7 @@ namespace fpli {
 					lastPoints = netPointEntry.Item1;
 					var placingDisplay = equalWithLast ? "  ": $"{placing}.";
 
-					Console.WriteLine($"{placingDisplay} {name}, {netPointEntry.Item1} pts (GW{netPointEntry.Item2})");
+					Console.WriteLine($"{placingDisplay} {Utils.StandardiseName(name)}, {netPointEntry.Item1} pts (GW{netPointEntry.Item2})");
 				}
 			});
 		}

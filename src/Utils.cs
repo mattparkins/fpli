@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
@@ -71,6 +72,24 @@ namespace fpli {
             v = v - ((v>>1) & 0x55555555);
             v = (v & 0x33333333) + ((v>>2) & 0x33333333);
             return ((v + (v>>4) & 0xF0F0F0F) * 0x1010101) >> 24;
+        }
+
+        // Standardise Name - Capitalize first letter of each word
+        public static string StandardiseName(string name) {
+            // Use the TextInfo class for culture-specific casing
+            TextInfo textInfo = CultureInfo.CurrentCulture.TextInfo;
+
+            // Split the name into words, standardize each word and join them back
+            string[] words = name.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+            for (int i = 0; i < words.Length; i++)
+            {
+                // Capitalize the first letter, and make the rest lowercase
+                words[i] = textInfo.ToTitleCase(words[i].ToLower());
+            }
+
+            // Join the words back into a single string
+            return string.Join(" ", words);
         }
 }
 }
