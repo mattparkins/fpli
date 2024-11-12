@@ -24,7 +24,7 @@ echo "Running Fixture Predictor"
 # GW2 Depth 10, best 0.061:  ARS 1.000  TOT 0.802  BRE 0.534  che 0.404  LIV 0.355  BOU 0.215  LEI 0.155  MUN 0.110  MCI 0.098  SOU 0.061 
 # GW2 Depth 8, best 0.147:  ARS 1.000  TOT 0.802  BRE 0.534  che 0.404  LEI 0.293  liv 0.242  MCI 0.206  MUN 0.147 
 # GW2 Depth 6, best 0.285:  ARS 1.000  TOT 0.802  CHE 0.574  MCI 0.476  LEI 0.345  liv 0.285  
-dotnet run --executeFixtureAnalysis 1 12 --previousPicks ARS LIV MCI BHA
+dotnet run --executeFixtureAnalysis 1 9 
 
 # Reduce ELO by draw %
 # Increase K factor to more favour form streams

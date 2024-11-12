@@ -288,6 +288,11 @@ namespace fpli {
 					// Parallel For loop iterates through the root moves.
 					// For ease of development and bug prevention, we'll place as much as we can into a function
 
+					// ParallelOptions parallelOptions = new ParallelOptions {
+					// 	MaxDegreeOfParallelism = 24 // or 24, depending on your preference
+					// };
+
+					//Parallel.For(1, 21, parallelOptions, (rootMoveIndex) => {
 					Parallel.For(1, 21, (rootMoveIndex) => {
 
 						// If  this team already been played or excluded then skip it
