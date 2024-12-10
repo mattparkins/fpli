@@ -25,4 +25,4 @@ echo "Running Fixture Predictor"
 # GW2 Depth 8, best 0.169:  NEW 1.000  TOT 0.802  BRE 0.534  che 0.404  LEI 0.293  liv 0.242  ARS 0.200  mci 0.169
 # GW2 Depth 10, best 0.079:  NEW 1.000  TOT 0.802  BRE 0.534  che 0.404  LEI 0.293  liv 0.242  ARS 0.200  MUN 0.142  MCI 0.127  SOU 0.079
 
-dotnet run --executeFixtureAnalysis 1 12 --previousPicks NEW TOT BRE LIV
+dotnet run --executeFixtureAnalysis 9 18 --previousPicks IPS SOU LEI WOL CRY EVE BOU TOT

@@ -21,7 +21,7 @@ echo "Running Fixture Predictor"
 # Season 2023/24, Game 1
 
 # paul 
-dotnet run --executeFixtureAnalysis 1 12 --previousPicks NEW MCI CHE LIV
+dotnet run --executeFixtureAnalysis 9 18 --previousPicks IPS SOU LEI WOL CRY EVE AVL
 
 # Reduce ELO by draw %
 # Increase K factor to more favour form streams
