@@ -52,6 +52,8 @@ namespace fpli {
 
         public Dictionary<int,List<int>> Captaincy { get; private set; } = new Dictionary<int, List<int>>();        // elementId, list of entryIds
         public Dictionary<string,List<int>> ChipUsage { get; private set; } = new Dictionary<string, List<int>>();  // chipType, list of entryIds
+        public Dictionary<int,List<int>> ChipTarget3xc { get; private set; } = new Dictionary<int, List<int>>();       // elementId, list of entryIds - for triple captain
+        public Dictionary<int,List<int>> ChipTargetAss { get; private set; } = new Dictionary<int, List<int>>();       // elementId, list of entryIds - for assistant manager
 
         public void CalculateLeagueStats(FPLData fpl) {
             _calculateCaptaincy(fpl);
@@ -80,6 +82,24 @@ namespace fpli {
                     ChipUsage[chip] = new List<int>();
                 }
                 ChipUsage[chip].Add(manager.GetEntryId);
+
+                // if the chip is triple captain or assistant manager then we need to know who the target was
+                if (chip == "3xc") {
+                    if (!ChipTarget3xc.ContainsKey(manager.GetCaptain)) {
+                        ChipTarget3xc[manager.GetCaptain] = new List<int>();
+                    }
+                    ChipTarget3xc[manager.GetCaptain].Add(manager.GetEntryId);
+                }
+
+                if (chip == "manager") {
+                    //Element 15 is the assistant manager
+                    int managerElID = manager.GetPicks.picks[15].element;
+
+                    if (!ChipTargetAss.ContainsKey(managerElID)) {
+                        ChipTargetAss[managerElID] = new List<int>();
+                    }
+                    ChipTargetAss[managerElID].Add(manager.GetEntryId);
+                }
             });
         }
     }

@@ -91,5 +91,33 @@ namespace fpli {
             // Join the words back into a single string
             return string.Join(" ", words);
         }
+
+
+        public static string ToOrdinal(int number) {
+            if (number <= 0) {
+                return number.ToString();
+            }
+
+            int absNumber = Math.Abs(number);
+            int lastTwoDigits = absNumber % 100;
+            
+            // Special case for 11, 12, and 13 (e.g., 11th, 12th, 13th)
+            if (lastTwoDigits >= 11 && lastTwoDigits <= 13)
+            {
+                return number + "th";
+            }
+
+            // Determine the ordinal suffix based on the last digit
+            int lastDigit = absNumber % 10;
+            string suffix = lastDigit switch
+            {
+                1 => "st",
+                2 => "nd",
+                3 => "rd",
+                _ => "th",
+            };
+
+            return number + suffix;
+        }
 }
 }

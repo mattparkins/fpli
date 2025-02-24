@@ -55,8 +55,11 @@ namespace fpli {
 
 			Console.WriteLine("\n\nSeason stats:");
 
-			_reportMostPointsOnBenchTable();	
+			_reportMostPointsOnBenchTable();
 			_reportHighestScoresTable();
+			_reportTCLeaderboard();
+			_reportAMLeaderboard();
+
 			_reportHighestValueTeamTable();
 			_reportMostHitsTable();
 			_reportNoHitClub();
@@ -83,19 +86,47 @@ namespace fpli {
 
 			foreach(var kv in list) {
 				if (kv.Key != "none") {
-					Console.Write($"{kv.Value.Count, 4} {kv.Key}: (");
-					string glue = "";
-					kv.Value.ForEach(entryId => {
 
-						// Get the name of the manager, we could load this from a manager info file
-						// but it's one less fetch per entry to just take it from the leaderboard
+					// Wildcard, Bench Boost, Free Hit - chips that don't target a specific player
 
-						Manager manager = _fpl.Managers[entryId];
-						Result result = _fpl.Standings[_config.leagueId].standings.results.Find(r => r.entry == entryId);
-						Console.Write($"{glue}{Utils.StandardiseName(result.player_name)}");
-						glue = ", ";
-					});
-					Console.WriteLine(")");
+					if (kv.Key == "wildcard" || kv.Key == "bboost" || kv.Key == "freehit") {
+						Console.Write($"{kv.Value.Count, 4} {kv.Key}: (");
+						string glue = "";
+						kv.Value.ForEach(entryId => {
+
+							// Get the name of the manager, we could load this from a manager info file
+							// but it's one less fetch per entry to just take it from the leaderboard
+
+							Manager manager = _fpl.Managers[entryId];
+							Result result = _fpl.Standings[_config.leagueId].standings.results.Find(r => r.entry == entryId);
+							Console.Write($"{glue}{Utils.StandardiseName(result.player_name)}");
+							glue = ", ";
+						});
+						Console.WriteLine(")");
+					} else {
+						// Triple captain or assistant manager - chips that DO target a specific elementId
+						string chipName = kv.Key == "3xc" ? "Triple Captain" : "Assistant Manager";
+						Console.WriteLine($"{kv.Value.Count, 2} {chipName}:");
+
+						// Which list of chip targets?  3xc or assman ?
+						Dictionary<int,List<int>> chipTargets = kv.Key == "3xc" ? _fpl.Standings[_config.leagueId].ChipTarget3xc : _fpl.Standings[_config.leagueId].ChipTargetAss;
+						foreach (var (targetId, fplManagers) in chipTargets) {
+							Console.Write($"  - {fplManagers.Count} {_fpl.Bootstrap.GetElement(targetId).web_name} (");
+							string glue = "";
+							fplManagers.ForEach(entryId => {
+
+								// Get the name of the manager, we could load this from a manager info file
+								// but it's one less fetch per entry to just take it from the leaderboard
+
+								Manager manager = _fpl.Managers[entryId];
+								Result result = _fpl.Standings[_config.leagueId].standings.results.Find(r => r.entry == entryId);
+								Console.Write($"{glue}{Utils.StandardiseName(result.player_name)}");
+								glue = ", ";
+							});
+							Console.WriteLine(")");
+						}
+						Console.WriteLine("");
+					}
 				}
 			}
 		}
@@ -365,7 +396,8 @@ namespace fpli {
 			_fpl.Managers.OrderByDescending(m => m.Value.SeasonPointsOnBench()).ToList().ForEach(manager => {
 
 				leagueBenchPoints += manager.Value.SeasonPointsOnBench();
-
+				
+				//placing++;
 				if (++placing <= 10) {
 					var name = _standings.GetEntry(manager.Value.GetEntryId).player_name;
 					var delta = manager.Value.GetBenchPoints;
@@ -374,7 +406,7 @@ namespace fpli {
 					// Only show placing number if not equal with previous
 					bool equalWithLast = manager.Value.SeasonPointsOnBench() == lastPoints;
 					lastPoints = manager.Value.SeasonPointsOnBench();
-					var placingDisplay = equalWithLast ? "  ": $"{placing}.";
+					var placingDisplay = equalWithLast ? " -- ": $"{Utils.ToOrdinal(placing)},";
 
 					Console.WriteLine($"{placingDisplay} {Utils.StandardiseName(name)}, {manager.Value.SeasonPointsOnBench()} pts ({ds})");
 				}
@@ -382,8 +414,8 @@ namespace fpli {
 
 			// League average
 			double average = (double)leagueBenchPoints / (double)_fpl.Managers.Count;
-			Console.WriteLine("--");
-			Console.WriteLine($"League average: {average.ToString("0.00")} pts");
+			//Console.WriteLine("--");
+			Console.WriteLine($"\nLeague average: {average.ToString("0.00")} pts");
 			
 		}	
 
@@ -409,7 +441,7 @@ namespace fpli {
 					// Only show placing number if not equal with previous
 					bool equalWithLast = manager.Value.SeasonHits() == lastPoints;
 					lastPoints = manager.Value.SeasonHits();
-					var placingDisplay = equalWithLast ? "  ": $"{placing}.";
+					var placingDisplay = equalWithLast ? " -- ": $"{Utils.ToOrdinal(placing)},";
 
 					Console.WriteLine($"{placingDisplay} {Utils.StandardiseName(name)}, -{manager.Value.SeasonHits()} pts ({tcs})");
 				}
@@ -417,8 +449,8 @@ namespace fpli {
 
 			// League average
 			double average = (double)leagueHitPoints / (double)_fpl.Managers.Count;
-			Console.WriteLine("--");
-			Console.WriteLine($"League average: -{average.ToString("0.00")} pts");
+			//Console.WriteLine("--");
+			Console.WriteLine($"\nLeague average: -{average.ToString("0.00")} pts");
 		}
 
 
@@ -460,7 +492,7 @@ namespace fpli {
 					// Only show placing number if not equal with previous
 					bool equalWithLast = manager.Value.GetCurrentTeamValue() == lastValue;
 					lastValue = manager.Value.GetCurrentTeamValue();
-					var placingDisplay = equalWithLast ? "  ": $"{placing}.";
+					var placingDisplay = equalWithLast ? " -- ": $"{Utils.ToOrdinal(placing)},";
 
 					Console.WriteLine($"{placingDisplay} {Utils.StandardiseName(name)} (£{v:#.0}m)");
 				}
@@ -468,8 +500,8 @@ namespace fpli {
 
 			// League average
 			double average = (double)leagueValue / (double)_fpl.Managers.Count / 10d;
-			Console.WriteLine("--");
-			Console.WriteLine($"League average: £{average.ToString("0.0")}m");
+			//Console.WriteLine("--");
+			Console.WriteLine($"\nLeague average: £{average.ToString("0.0")}m");
 		}
 
 
@@ -495,13 +527,116 @@ namespace fpli {
 					// Only show placing number if not equal with previous
 					bool equalWithLast = netPointEntry.Item1 == lastPoints;
 					lastPoints = netPointEntry.Item1;
-					var placingDisplay = equalWithLast ? "  ": $"{placing}.";
+					var placingDisplay = equalWithLast ? " -- ": $"{Utils.ToOrdinal(placing)},";
 
 					Console.WriteLine($"{placingDisplay} {Utils.StandardiseName(name)}, {netPointEntry.Item1} pts (GW{netPointEntry.Item2})");
 				}
 			});
 		}
 
+		private void _reportTCLeaderboard() {
+			Console.WriteLine("\n\nTriple Captain Leaderboard");
+			Console.Write("-----------------------------");
+
+			int totalValidTCs = 0;
+			int totalTCPoints = 0;
+
+			// Order by descending but exclude TCs which are null
+			_fpl.Managers.OrderByDescending(m => m.Value.GetX3Tally).ToList().ForEach(manager => {
+				
+				if (manager.Value.GetX3Tally == null) {
+					return;
+				}
+
+				totalValidTCs++;
+				totalTCPoints += (int) (manager.Value.GetX3Tally) *3;
+			});
+
+			// Show Leaderboard
+			int placing = 0;
+			int lastPoints = 0;
+			
+			_fpl.Managers.OrderByDescending(m => m.Value.GetX3Tally).ToList().ForEach(manager => {
+				
+				if (manager.Value.GetX3Tally == null) {
+					return;
+				}
+
+				if (++placing <= 15 || lastPoints == (int) manager.Value.GetX3Tally) {
+					Result entry = _standings.GetEntry(manager.Value.GetEntryId);
+					var name = Utils.StandardiseName(entry.player_name);
+					int points = (int) manager.Value.GetX3Tally;
+
+					// Only show placing number if not equal with previous
+					bool equalWithLast = points == lastPoints;
+					lastPoints = points;
+					
+					if (!equalWithLast) { 
+						Console.WriteLine($"\n{Utils.ToOrdinal(placing)}, {manager.Value.GetX3Manager}\n - {name}");
+					} else {
+						Console.WriteLine($" - {name}");
+					}
+				}
+		
+			});
+
+			// League average
+			double average = (double)totalTCPoints / (double)totalValidTCs;
+			Console.WriteLine($"\nLeague average: {average.ToString("0.00")} pts");
+		}
+
+
+		private void _reportAMLeaderboard() {
+			Console.WriteLine("\n\nAssistant Manager Leaderboard");
+			Console.Write("-------------------------------");
+
+			int totalValidAMs = 0;
+			int totalAMPoints = 0;
+
+			// Order by descending but exclude TCs which are null
+			_fpl.Managers.OrderByDescending(m => m.Value.GetAmTally).ToList().ForEach(manager => {
+				
+				if (manager.Value.GetAmTally == null) {
+					return;
+				}
+
+				totalValidAMs++;
+				totalAMPoints += (int) (manager.Value.GetAmTally);
+			});
+
+			// Show Leaderboard
+			int placing = 0;
+			int lastPoints = 0;
+			
+			_fpl.Managers.OrderByDescending(m => m.Value.GetAmTally).ToList().ForEach(manager => {
+				
+				if (manager.Value.GetAmTally == null) {
+					return;
+				}
+
+				if (++placing <= 10 || lastPoints == (int) manager.Value.GetAmTally) {
+					Result entry = _standings.GetEntry(manager.Value.GetEntryId);
+					var name = Utils.StandardiseName(entry.player_name);
+					int points = (int) manager.Value.GetAmTally;
+
+					// Only show placing number if not equal with previous
+					bool equalWithLast = points == lastPoints;
+					lastPoints = points;
+					
+					if (!equalWithLast) { 
+						Console.WriteLine($"\n{Utils.ToOrdinal(placing)}, {points} pts\n - {name}");
+					} else {
+						Console.WriteLine($" - {name}");
+					}
+				}
+		
+			});
+
+			// League average
+			double average = (double)totalAMPoints / (double)totalValidAMs;
+			
+			Console.WriteLine($"\nLeague average: {average.ToString("0.00")} pts");
+		}
 
 
 

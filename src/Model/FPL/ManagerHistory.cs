@@ -27,8 +27,8 @@ namespace fpli {
     }
 
     public class ManagerHistory {
-        public List<Current> current { get; set; }
-        public List<Past> past { get; set; }
-        public List<Chip> chips { get; set; }
+        public List<Current> current { get; set; }      // Current season
+        public List<Past> past { get; set; }            // Past seasons
+        public List<Chip> chips { get; set; }           // When the chips were used in this season
     }
 }
