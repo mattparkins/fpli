@@ -148,7 +148,9 @@ namespace fpli {
 
 				_x3Tally = 0;	// Set the tally from null to zero
 				
-				_picksHistory[ch.@event].picks.ForEach(p => {
+				Console.WriteLine($"Manager history for {_entryId} 3xc played in {ch.@event}, pick history count {_picksHistory.Count}");
+
+				_picksHistory[ch.@event -1].picks.ForEach(p => {
 					if (p.is_captain) {
 						int elId = p.element; 	// the id of the element
 

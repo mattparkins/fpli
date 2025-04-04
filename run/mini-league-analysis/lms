@@ -4,4 +4,4 @@ if [ ! -f README.md ]; then
     exit 1
 fi
 echo "Running LMS Summary"
-dotnet run --leagueId 6161 --incManagersInCaptaincy
+dotnet run --leagueId 6161 --incManagersInCaptaincy --callrate 0
