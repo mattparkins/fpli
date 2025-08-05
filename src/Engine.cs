@@ -17,7 +17,7 @@ namespace fpli {
 			Analyser analyser = Analyser.Factory(config.intent, _fpl, _config);
 
 			// Load
-			await _fpl.PreFetch(analyser.RequiresHistory);
+			await _fpl.PreFetch(true);
 			await analyser.PreFetch();
 
 			// Preprocess

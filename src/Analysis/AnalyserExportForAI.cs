@@ -3,7 +3,6 @@ using System.Text;
 namespace fpli {
 	public class AnalyserExportForAI: Analyser {
 
-		public override bool RequiresHistory { get { return false; } }
 		public override void Preprocess() {}
 
 

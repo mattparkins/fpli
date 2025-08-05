@@ -52,23 +52,28 @@ namespace fpli {
 			EventStatus = await Fetcher.FetchAndDeserialise<EventStatus>(_cachePath+"event-status.json", _api+"event-status/", Utils.HoursAsSeconds(1));
 			
 			int gw = Bootstrap.GetCurrentGameweekId();
-			if (gw < 1) {
-				Console.WriteLine("Currently in pre-seaason, skipping live data");
-			} else {
-				Live = await Fetcher.FetchAndDeserialise<Live>(_cachePath+"live_GW"+gw+".json", _api+"event/"+gw+"/live/", Utils.HoursAsSeconds(1));
+			if (gw < 1)
+			{
+				Console.WriteLine("Currently in pre-seaason, skipping live data & players");
+			}
+			else
+			{
+				Live = await Fetcher.FetchAndDeserialise<Live>(_cachePath + "live_GW" + gw + ".json", _api + "event/" + gw + "/live/", Utils.HoursAsSeconds(1));
+				
+				// Fetch element summaries
+				// Iterate through each element identified in the bootstrap
+				// Fetch & store each element summary
+
+				foreach (Element element in Bootstrap.elements) {
+					ElementSummary elementSummary = await Fetcher.FetchAndDeserialise<ElementSummary>(
+						$"{_cachePath}element_summary_{element.id}.json", 
+						$"{_api}element-summary/{element.id}/", 
+						Utils.DaysAsSeconds(1));
+					Elements[element.id] = elementSummary;
+				}
 			}
 
-			// Fetch element summaries
-			// Iterate through each element identified in the bootstrap
-			// Fetch & store each element summary
 
-			foreach (Element element in Bootstrap.elements) {
-				ElementSummary elementSummary = await Fetcher.FetchAndDeserialise<ElementSummary>(
-					$"{_cachePath}element_summary_{element.id}.json", 
-					$"{_api}element-summary/{element.id}/", 
-					Utils.DaysAsSeconds(1));
-				Elements[element.id] = elementSummary;
-			}
 		}
 
 		public async Task LoadManager(int entryId) {

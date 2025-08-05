@@ -10,18 +10,21 @@ namespace fpli {
 
 	public class FixtureAnalyser : Analyser {
 
-		public override bool RequiresHistory { get { return true; } }
 		
-		public FixtureAnalyser(FPLData fpl, Config config): base(fpl, config) {
-			if (_config.gameweek <= 0) {
+		public FixtureAnalyser(FPLData fpl, Config config) : base(fpl, config)
+		{
+			if (_config.gameweek <= 0)
+			{
 				Program.Quit("Gameweek is invalid or not set");
 			}
-			
-			if (_config.fixtureCount <= 0) {
+
+			if (_config.fixtureCount <= 0)
+			{
 				Program.Quit("FixtureCount is invalid or not set");
 			}
 
-			if (_config.fixturePicks.Count >= _config.fixtureCount) {
+			if (_config.fixturePicks.Count >= _config.fixtureCount)
+			{
 				Program.Quit("FixturesAlreadyPicked count >= Gameweeks to analyse");
 			}
 		}

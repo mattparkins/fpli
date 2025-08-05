@@ -2,14 +2,18 @@ namespace fpli {
 	public class MiniLeagueAnalyser : Analyser {
 
 		LeagueStandings _standings;
+		
 
-		public MiniLeagueAnalyser(FPLData fpl, Config config): base(fpl, config) {
+		public MiniLeagueAnalyser(FPLData fpl, Config config) : base(fpl, config)
+		{
 			// Basic config sanity check
-			if (_config.leagueId <= 0) {
+			if (_config.leagueId <= 0)
+			{
 				Program.Quit("LeagueId is invalid or not set");
 			}
 
-			if (_config.maxManagers <= 0) {
+			if (_config.maxManagers <= 0)
+			{
 				Program.Quit("MaxManagers is invalid");
 			}
 		}

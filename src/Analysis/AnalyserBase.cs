@@ -16,13 +16,13 @@ namespace fpli {
 		public abstract void Preprocess();
 		public abstract void Analyse();
 
-		public virtual bool RequiresHistory { get { return false; } }
-
-		public static Analyser Factory(Intent intent, FPLData fpl, Config config) {
-			switch (intent) {
-				case Intent.ExecuteMiniLeagueAnalysis:	return new MiniLeagueAnalyser(fpl, config);
-				case Intent.ExecuteFixtureAnalysis:		return new FixtureAnalyser(fpl, config);
-				case Intent.ExecuteExportForAI:			return new AnalyserExportForAI(fpl, config);
+		public static Analyser Factory(Intent intent, FPLData fpl, Config config)
+		{
+			switch (intent)
+			{
+				case Intent.ExecuteMiniLeagueAnalysis: return new MiniLeagueAnalyser(fpl, config);
+				case Intent.ExecuteFixtureAnalysis: return new FixtureAnalyser(fpl, config);
+				case Intent.ExecuteExportForAI: return new AnalyserExportForAI(fpl, config);
 			}
 			return null;
 		}
