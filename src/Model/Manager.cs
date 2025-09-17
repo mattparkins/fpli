@@ -1,3 +1,4 @@
+using System.Net;
 using System.Security.Cryptography.X509Certificates;
 
 namespace fpli {
@@ -7,10 +8,12 @@ namespace fpli {
 		List<Picks> _picksHistory;
 		List<Transfer> _transfers;
 		int _captain;
+		int _captainMultiplier;
 		int _gw;
 		int? _transfersResult = null;
 		int? _amTally = null;	// Assistant manager tally - only non-null after the AM chip is complete
-		int? _x3Tally = null;	// Triple captain tally - the value of this manager's use of the TC chip
+		int? _x3Tally = null;   // Triple captain tally - the value of this manager's use of the TC chip
+		int? _captaincySeasonTally = null; 	// Total points from captains/vc this season
 
 		string _x3Manager = "";
 		string _amConfig = "";
@@ -20,7 +23,8 @@ namespace fpli {
 		
 		public int GetEntryId 		{ get { return _entryId; }} 
 		public int GetCaptain 		{ get { return _captain; }}
-		public int GetNetPoints		{ get { return _picks.entry_history.points - GetTransferCost; }}
+		public int GetCaptainMultiplier { get { return _captainMultiplier; }}
+		public int GetNetPoints { get { return _picks.entry_history.points - GetTransferCost; } }
 		public int GetBenchPoints	{ get { return _picks.entry_history.points_on_bench; }}
 		public string GetChip 		{ get { return _picks.active_chip; }}
 		public int GetTransferCount { get { return _picks.entry_history.event_transfers; }}
@@ -31,7 +35,7 @@ namespace fpli {
 		public string GetX3Manager	{ get { return _x3Manager; }}
 		public string GetAmConfig	{ get { return _amConfig; }}
 
-		public Picks GetPicks 						{ get { return _picks; }}
+		public Picks GetPicks { get { return _picks; } }
 		public List<Transfer> GetTransfers 			{ get { return _transfers; }}
 		public ManagerHistory GetManagerHistory 	{ get { return _managerHistory; }}
 
@@ -46,11 +50,22 @@ namespace fpli {
 			_managerHistory = await Fetcher.FetchAndDeserialise<ManagerHistory>($"{cachePath}entry_{_entryId}_history_GW{GW}.json", $"{api}entry/{_entryId}/history/", Utils.DaysAsSeconds(0.25f));
 
 			// pull out any shortcut data
+			_captain = 0;
 			_picks.picks.ForEach(p => {
-				if (p.is_captain) {
+				if (p.is_captain && p.multiplier > 0) {
 					_captain = p.element;
+					_captainMultiplier = p.multiplier;
 				}
-			});			
+			});
+
+			if (_captain == 0) {
+				_picks.picks.ForEach(p => {
+					if (p.is_vice_captain && p.multiplier > 0) {
+						_captain = p.element;
+						_captainMultiplier = p.multiplier;
+					}
+				});
+			}
 
 			_picksHistory = new List<Picks>();
 			for (int gw = 1; gw <= GW; gw++) {
@@ -79,11 +94,53 @@ namespace fpli {
 
 			return (int) _transfersResult;
 		}
+		
+		public int CaptaincySeasonTally() {
+			if (_captaincySeasonTally == null) {
+				_captaincySeasonTally = 0;
+				int gameweekNumber = 1;
 
-		public int SeasonTransfers() {
+				// Iterate through _picksHistory and find the isCaptain pick, if the multiplier is zero then it was a VC
+				_picksHistory.ForEach(gw => {
+
+					Pick captain = null;
+
+					// Find the captain pick
+					gw.picks.ForEach(p => {
+						if (p.is_captain && p.multiplier > 0) {
+							captain = p;
+						}
+					});
+
+					// If the captain has a zero multiplier then check for the VC
+					if (captain == null) {
+						gw.picks.ForEach(p => {
+							if (p.is_vice_captain && p.multiplier > 0) {
+								captain = p;
+							}
+						});
+					}
+
+					//if the captain is set (neither of the manager's C & VC might have played)
+					//then add the multiplied sum to the tally
+					if (captain != null) {
+						FPLData.Instance.Elements.TryGetValue(captain.element, out ElementSummary el);
+						el.history.FindAll(h => h.round == gameweekNumber)?.ForEach(h => _captaincySeasonTally += captain.multiplier * h.total_points);
+					}
+
+					gameweekNumber++;
+				});	
+			}
+
+			return (int) _captaincySeasonTally;
+		}
+
+		public int SeasonTransfers()
+		{
 			int seasonTransfers = 0;
 
-			_managerHistory.current.ForEach(gw => {
+			_managerHistory.current.ForEach(gw =>
+			{
 				seasonTransfers += gw.event_transfers;
 			});
 
@@ -102,13 +159,15 @@ namespace fpli {
 		}
 
 
-		public int SeasonPointsOnBench() {
+		public int SeasonPointsOnBench()
+		{
 			int seasonPointsOnBench = 0;
 
-			_managerHistory.current.ForEach(gw => {
+			_managerHistory.current.ForEach(gw =>
+			{
 				seasonPointsOnBench += gw.points_on_bench;
 			});
-			
+
 			return seasonPointsOnBench;
 		}
 

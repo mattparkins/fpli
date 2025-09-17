@@ -1,3 +1,5 @@
+using System.Runtime.InteropServices;
+
 namespace fpli {
 	public class MiniLeagueAnalyser : Analyser {
 
@@ -18,15 +20,28 @@ namespace fpli {
 			}
 		}
 
-		public override async Task PreFetch() {
-			
+		public override async Task PreFetch()
+		{
+
 			// Load the league
 			await _fpl.LoadLeague(_config.leagueId, _config.maxManagers);
 
 			// Load each manager in the league
-			foreach(var standingEntry in _fpl.Standings[_config.leagueId].standings.results) {
+			foreach (var standingEntry in _fpl.Standings[_config.leagueId].standings.results)
+			{
 				await _fpl.LoadManager(standingEntry.entry);
-			};
+			}
+
+
+			//Load each manager in the new entry section
+			// if (_fpl.Standings[_config.leagueId].new_entries != null)
+			// {
+			// 	foreach (var entry in _fpl.Standings[_config.leagueId].new_entries.results)
+			// 	{
+			// 		int entryId = int.Parse(entry);
+			// 		await _fpl.LoadManager(entryId);
+			// 	}
+			// }
 		}
 
 
@@ -61,8 +76,9 @@ namespace fpli {
 
 			_reportMostPointsOnBenchTable();
 			_reportHighestScoresTable();
+			_reportCaptaincyTable();
 			_reportTCLeaderboard();
-			_reportAMLeaderboard();
+			//_reportAMLeaderboard();
 
 			_reportHighestValueTeamTable();
 			_reportMostHitsTable();
@@ -370,7 +386,7 @@ namespace fpli {
 					Console.Write("\n  "+Utils.StandardiseName(e.player_name)+"\n");
 
 					var man =_fpl.Managers[e.entry];
-					List<int> ins = new();
+				 List<int> ins = new();
 					List<int> outs = new();
 
 					man.GetTransfers.Where(tr => tr.@event == _fpl.Bootstrap.GetCurrentGameweekId()).ToList().ForEach(tr => {
@@ -421,10 +437,72 @@ namespace fpli {
 			//Console.WriteLine("--");
 			Console.WriteLine($"\nLeague average: {average.ToString("0.00")} pts");
 			
-		}	
+		}
 
 
-		private void _reportMostHitsTable() {
+		private void _reportCaptaincyTable() {
+			Console.WriteLine("\n\nCaptaincy Leaderboard");
+			Console.WriteLine("-------------------------");
+
+			int placing = 0;
+			int lastPoints = 0;
+			int leagueCaptaincyPoints = 0;
+			int totalManagers = _fpl.Managers.Count;
+
+			var orderedManagers = _fpl.Managers.OrderByDescending(m => m.Value.CaptaincySeasonTally()).ToList();
+			orderedManagers.ForEach(manager => {
+				leagueCaptaincyPoints += manager.Value.CaptaincySeasonTally();
+				if (++placing <= 10) {
+					var name = _standings.GetEntry(manager.Value.GetEntryId).player_name;
+					int delta = 0;
+					string ds = "= none";
+					int capId = manager.Value.GetCaptain;
+					if (capId > 0) {
+						FPLData.Instance.Elements.TryGetValue(capId, out ElementSummary el);
+						ElementHistory eh = el.history.LastOrDefault();
+						delta = (eh?.total_points ?? 0) * manager.Value.GetCaptainMultiplier;
+						ds = (delta > 0 ? $"+{delta}" : delta < 0 ? $"-{delta}" : "=") + " " + _fpl.Bootstrap.GetElement(capId).web_name;
+					}
+					bool equalWithLast = manager.Value.CaptaincySeasonTally() == lastPoints;
+					lastPoints = manager.Value.CaptaincySeasonTally();
+					var placingDisplay = equalWithLast ? " -- " : $"{Utils.ToOrdinal(placing)},";
+					Console.WriteLine($"{placingDisplay} {Utils.StandardiseName(name)}, {manager.Value.CaptaincySeasonTally()} pts ({ds})");
+				}
+			});
+
+			// League average
+			double average = (double)leagueCaptaincyPoints / (double)totalManagers;
+			Console.WriteLine($"...\nLeague average: {average.ToString("0.00")} pts\n...");
+
+
+			// Show bottom 5 managers by captaincy tally, with correct league placing
+			placing = totalManagers - 4; // Start at 69th for 73 managers
+			lastPoints = 0;
+			var bottomManagers = _fpl.Managers.OrderBy(m => m.Value.CaptaincySeasonTally()).Take(5).ToList();
+			bottomManagers.Reverse();
+			bottomManagers.ForEach(manager => {
+				var name = _standings.GetEntry(manager.Value.GetEntryId).player_name;
+				int delta = 0;
+				string ds = "= none";
+				int capId = manager.Value.GetCaptain;
+				if (capId > 0) {
+					FPLData.Instance.Elements.TryGetValue(capId, out ElementSummary el);
+					ElementHistory eh = el.history.LastOrDefault();
+					delta = (eh?.total_points ?? 0) * manager.Value.GetCaptainMultiplier;
+					ds = (delta > 0 ? $"+{delta}" : delta < 0 ? $"-{delta}" : "=") + " " + _fpl.Bootstrap.GetElement(capId).web_name;
+				}
+				bool equalWithLast = manager.Value.CaptaincySeasonTally() == lastPoints;
+				lastPoints = manager.Value.CaptaincySeasonTally();
+				var placingDisplay = equalWithLast ? " --  " : $"{Utils.ToOrdinal(placing)},";
+				Console.WriteLine($"{placingDisplay} {Utils.StandardiseName(name)}, {manager.Value.CaptaincySeasonTally()} pts ({ds})");
+				placing++;
+			});
+		}
+
+
+
+		private void _reportMostHitsTable()
+		{
 			Console.WriteLine("\n\nHits Leaderboard");
 			Console.WriteLine("------------------");
 
@@ -432,20 +510,22 @@ namespace fpli {
 			int lastPoints = 0;
 			int leagueHitPoints = 0;
 
-			_fpl.Managers.OrderByDescending(m => m.Value.SeasonHits()).ToList().ForEach(manager => {
-				
+			_fpl.Managers.OrderByDescending(m => m.Value.SeasonHits()).ToList().ForEach(manager =>
+			{
+
 				leagueHitPoints += manager.Value.SeasonHits();
 
-				if (++placing <= 5) {
+				if (++placing <= 5)
+				{
 					Result entry = _standings.GetEntry(manager.Value.GetEntryId);
 					var name = entry.player_name;
 					var tc = manager.Value.GetTransferCost;
-					var tcs = tc == 0 ? "=" : "-"+tc;
+					var tcs = tc == 0 ? "=" : "-" + tc;
 
 					// Only show placing number if not equal with previous
 					bool equalWithLast = manager.Value.SeasonHits() == lastPoints;
 					lastPoints = manager.Value.SeasonHits();
-					var placingDisplay = equalWithLast ? " -- ": $"{Utils.ToOrdinal(placing)},";
+					var placingDisplay = equalWithLast ? " -- " : $"{Utils.ToOrdinal(placing)},";
 
 					Console.WriteLine($"{placingDisplay} {Utils.StandardiseName(name)}, -{manager.Value.SeasonHits()} pts ({tcs})");
 				}
@@ -590,57 +670,57 @@ namespace fpli {
 		}
 
 
-		private void _reportAMLeaderboard() {
-			Console.WriteLine("\n\nAssistant Manager Leaderboard");
-			Console.Write("-------------------------------");
+		// private void _reportAMLeaderboard() {
+		// 	Console.WriteLine("\n\nAssistant Manager Leaderboard");
+		// 	Console.Write("-------------------------------");
 
-			int totalValidAMs = 0;
-			int totalAMPoints = 0;
+		// 	int totalValidAMs = 0;
+		// 	int totalAMPoints = 0;
 
-			// Order by descending but exclude TCs which are null
-			_fpl.Managers.OrderByDescending(m => m.Value.GetAmTally).ToList().ForEach(manager => {
+		// 	// Order by descending but exclude TCs which are null
+		// 	_fpl.Managers.OrderByDescending(m => m.Value.GetAmTally).ToList().ForEach(manager => {
 				
-				if (manager.Value.GetAmTally == null) {
-					return;
-				}
+		// 		if (manager.Value.GetAmTally == null) {
+		// 			return;
+		// 		}
 
-				totalValidAMs++;
-				totalAMPoints += (int) (manager.Value.GetAmTally);
-			});
+		// 		totalValidAMs++;
+		// 		totalAMPoints += (int) (manager.Value.GetAmTally);
+		// 	});
 
-			// Show Leaderboard
-			int placing = 0;
-			int lastPoints = 0;
+		// 	// Show Leaderboard
+		// 	int placing = 0;
+		// 	int lastPoints = 0;
 			
-			_fpl.Managers.OrderByDescending(m => m.Value.GetAmTally).ToList().ForEach(manager => {
+		// 	_fpl.Managers.OrderByDescending(m => m.Value.GetAmTally).ToList().ForEach(manager => {
 				
-				if (manager.Value.GetAmTally == null) {
-					return;
-				}
+		// 		if (manager.Value.GetAmTally == null) {
+		// 			return;
+		// 		}
 
-				if (++placing <= 10 || lastPoints == (int) manager.Value.GetAmTally) {
-					Result entry = _standings.GetEntry(manager.Value.GetEntryId);
-					var name = Utils.StandardiseName(entry.player_name);
-					int points = (int) manager.Value.GetAmTally;
+		// 		if (++placing <= 10 || lastPoints == (int) manager.Value.GetAmTally) {
+		// 			Result entry = _standings.GetEntry(manager.Value.GetEntryId);
+		// 			var name = Utils.StandardiseName(entry.player_name);
+		// 			int points = (int) manager.Value.GetAmTally;
 
-					// Only show placing number if not equal with previous
-					bool equalWithLast = points == lastPoints;
-					lastPoints = points;
+		// 			// Only show placing number if not equal with previous
+		// 			bool equalWithLast = points == lastPoints;
+		// 			lastPoints = points;
 					
-					if (!equalWithLast) { 
-						Console.WriteLine($"\n{Utils.ToOrdinal(placing)}, {points} pts\n - {name}");
-					} else {
-						Console.WriteLine($" - {name}");
-					}
-				}
+		// 			if (!equalWithLast) { 
+		// 				Console.WriteLine($"\n{Utils.ToOrdinal(placing)}, {points} pts\n - {name}");
+		// 			} else {
+		// 				Console.WriteLine($" - {name}");
+		// 			}
+		// 		}
 		
-			});
+		// 	});
 
-			// League average
-			double average = (double)totalAMPoints / (double)totalValidAMs;
+		// 	// League average
+		// 	double average = (double)totalAMPoints / (double)totalValidAMs;
 			
-			Console.WriteLine($"\nLeague average: {average.ToString("0.00")} pts");
-		}
+		// 	Console.WriteLine($"\nLeague average: {average.ToString("0.00")} pts");
+		// }
 
 
 

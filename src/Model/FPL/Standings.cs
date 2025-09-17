@@ -46,7 +46,7 @@ namespace fpli {
 	public class LeagueStandings
     {
         public NewEntries new_entries { get; set; }
-        public DateTime last_updated_data { get; set; }
+        public DateTime? last_updated_data { get; set; }
         public League league { get; set; }
         public Standings standings { get; set; }
 
