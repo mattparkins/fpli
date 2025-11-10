@@ -50,9 +50,10 @@ namespace fpli {
 			_managerHistory = await Fetcher.FetchAndDeserialise<ManagerHistory>($"{cachePath}entry_{_entryId}_history_GW{GW}.json", $"{api}entry/{_entryId}/history/", Utils.DaysAsSeconds(0.25f));
 
 			// pull out any shortcut data
+
 			_captain = 0;
 			_picks.picks.ForEach(p => {
-				if (p.is_captain && p.multiplier > 0) {
+				if (p.is_captain && p.multiplier >= 2) {
 					_captain = p.element;
 					_captainMultiplier = p.multiplier;
 				}
@@ -60,7 +61,7 @@ namespace fpli {
 
 			if (_captain == 0) {
 				_picks.picks.ForEach(p => {
-					if (p.is_vice_captain && p.multiplier > 0) {
+					if (p.is_vice_captain && p.multiplier >= 2) {
 						_captain = p.element;
 						_captainMultiplier = p.multiplier;
 					}
