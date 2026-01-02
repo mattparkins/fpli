@@ -260,29 +260,22 @@ namespace fpli {
 		}
 
 
-		private void _reportCaptaincyReturns() { 
+		private void _reportCaptaincyReturns() {
+			Console.WriteLine($"\nCaptain Returns");
+			Console.WriteLine($"---------------");
 
-			// Should really cover VCs
+			var captains = _fpl.Standings[_config.leagueId].Captaincy
+				.Select(kv => new {
+					Name = _fpl.Bootstrap.GetElement(kv.Key).web_name,
+					Points = _fpl.Live.elements.Find(el => el.id == kv.Key).stats.total_points,
+					Count = kv.Value.Count
+				})
+				.OrderByDescending(c => c.Count)
+				.ThenByDescending(c => c.Points);
 
-			int blanks = 0;
-			int rets = 0;
-
-			foreach(var kv in _fpl.Standings[_config.leagueId].Captaincy) {
-
-				var captain = _fpl.Live.elements.Find(el => el.id == kv.Key);
-				int points = captain.stats.total_points;
-
-				if (points >= 4) {
-					rets += kv.Value.Count;
-				} else {
-					blanks += kv.Value.Count;
-				}
+			foreach (var c in captains) {
+				Console.WriteLine($"{c.Count,4} {c.Name}, {c.Points}pts");
 			}
-
-			Console.WriteLine($"\nCaptains.");
-			Console.WriteLine($"----------");
-			Console.WriteLine($"Blanked : {blanks} manager{(blanks==1?"":"s")}");
-			Console.WriteLine($"Returned: {rets} manager{(blanks==1?"":"s")}");
 		}
 
 
