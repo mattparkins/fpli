@@ -61,6 +61,7 @@ namespace fpli {
 			_reportChipUsage();
 			_reportCaptaincy();
 			_reportHits();
+			_reportBurnedTransfers();
 
 			Console.WriteLine("\n\n\nPostGW Analysis:\n");
 
@@ -554,6 +555,13 @@ namespace fpli {
 					Console.WriteLine($"{Utils.StandardiseName(name)}");
 				});
 			}
+		}
+
+
+		private void _reportBurnedTransfers() {
+			int thisWeek = _fpl.Managers.Count(m => m.Value.BurnedTransferThisWeek());
+			int totalBurned = _fpl.Managers.Sum(m => m.Value.SeasonBurnedTransfers());
+			Console.WriteLine($"\nBurned transfers: {thisWeek} (total: {totalBurned})");
 		}
 
 

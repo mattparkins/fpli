@@ -170,6 +170,49 @@ namespace fpli {
 			return seasonPointsOnBench;
 		}
 
+		public int SeasonBurnedTransfers() {
+			return CountBurnedTransfers(1, _managerHistory.current.Count);
+		}
+
+		public bool BurnedTransferThisWeek() {
+			int currentGw = _managerHistory.current.Count;
+			return CountBurnedTransfers(currentGw, currentGw) > 0;
+		}
+
+		private int CountBurnedTransfers(int fromGw, int toGw) {
+			int burned = 0;
+			int freeTransfers = 1;  // Start of season
+
+			for (int i = 0; i < _managerHistory.current.Count; i++) {
+				var gwHistory = _managerHistory.current[i];
+				var gwPicks = _picksHistory[i];
+				int gameweek = gwHistory.@event;
+				int transfersMade = gwHistory.event_transfers;
+				string chip = gwPicks.active_chip;
+
+				// GW16 2024/25: everyone topped up to 5 FTs
+				if (gameweek == 16) {
+					freeTransfers = 5;
+				}
+
+				// WC/FH allow unlimited transfers, FTs carry through but no +1 gain
+				if (chip == "wildcard" || chip == "freehit") {
+					continue;
+				}
+
+				// Check for burn: had 5 FTs and made 0 transfers (only count if in range)
+				if (freeTransfers == 5 && transfersMade == 0 && gameweek >= fromGw && gameweek <= toGw) {
+					burned++;
+				}
+
+				// Calculate FTs for next week: use transfers, gain 1, cap at 5
+				freeTransfers = Math.Min(5, freeTransfers - transfersMade + 1);
+				if (freeTransfers < 1) freeTransfers = 1;  // Can't go below 1
+			}
+
+			return burned;
+		}
+
 		public int GetCurrentCashInBank() {
 			return _managerHistory.current.Last().bank;
 		}
