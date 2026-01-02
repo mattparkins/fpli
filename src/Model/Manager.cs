@@ -12,11 +12,9 @@ namespace fpli {
 		int _gw;
 		int? _transfersResult = null;
 		int? _amTally = null;	// Assistant manager tally - only non-null after the AM chip is complete
-		int? _x3Tally = null;   // Triple captain tally - the value of this manager's use of the TC chip
-		int _x3Gw = 0;			// Gameweek when triple captain was played
+		List<(int tally, int gw, string description)> _x3Results = new();  // Triple captain results (supports multiple TC chips)
 		int? _captaincySeasonTally = null; 	// Total points from captains/vc this season
 
-		string _x3Manager = "";
 		string _amConfig = "";
 
 		ManagerHistory _managerHistory;
@@ -32,9 +30,7 @@ namespace fpli {
 		public int GetTransferCost  { get { return _picks.entry_history.event_transfers_cost; }}
 		public bool DidRoll			{ get { return GetChip == null && GetTransferCount == 0 && _gw != 1; }}
 		public int? GetAmTally		{ get { return _amTally; }}
-		public int? GetX3Tally		{ get { return _x3Tally; }}
-		public int GetX3Gw			{ get { return _x3Gw; }}
-		public string GetX3Manager	{ get { return _x3Manager; }}
+		public List<(int tally, int gw, string description)> GetX3Results { get { return _x3Results; }}
 		public string GetAmConfig	{ get { return _amConfig; }}
 
 		public Picks GetPicks { get { return _picks; } }
@@ -202,28 +198,24 @@ namespace fpli {
 
 		public void CalculateChips() {
 
-			// Find the value of the 3x Chip.  First locate which week this manager used their 3xc chip
-			// Then find the points scored by the captain that week, or leave as null if they haven't played 
-			// their triple captain chip yet this season.
-
+			// Find the value of each 3x Chip. Managers can now have multiple TC chips per season.
 			_managerHistory.chips.FindAll(ch => ch.name == "3xc").ForEach(ch => {
 
-				_x3Tally = 0;	// Set the tally from null to zero
-				_x3Gw = ch.@event;
+				int tally = 0;
+				int gw = ch.@event;
 
-				Console.WriteLine($"Manager history for {_entryId} 3xc played in {ch.@event}, pick history count {_picksHistory.Count}");
+				Console.WriteLine($"Manager history for {_entryId} 3xc played in {gw}, pick history count {_picksHistory.Count}");
 
-				_picksHistory[ch.@event -1].picks.ForEach(p => {
+				_picksHistory[gw - 1].picks.ForEach(p => {
 					if (p.is_captain) {
-						int elId = p.element; 	// the id of the element
+						int elId = p.element;
 
 						FPLData.Instance.Elements.TryGetValue(elId, out ElementSummary el);
-						el.history.FindAll(h => h.round == ch.@event)?.ForEach(h => _x3Tally += h.total_points);
-						
-						//Report result
+						el.history.FindAll(h => h.round == gw)?.ForEach(h => tally += h.total_points ?? 0);
+
 						string name = FPLData.Instance.Bootstrap.elements.Find(e => e.id == elId).web_name;
-						//Console.WriteLine($"Triple Captain: {name} scored {_x3Tally} points in GW{ch.@event}");
-						_x3Manager = $"(GW{ch.@event} {name} {_x3Tally *3} pts)";
+						string description = $"(GW{gw} {name} {tally * 3} pts)";
+						_x3Results.Add((tally, gw, description));
 					}
 				});
 			});

@@ -622,63 +622,58 @@ namespace fpli {
 			Console.WriteLine("\n\nTriple Captain Leaderboard");
 			Console.Write("-----------------------------");
 
-			int totalValidTCs = 0;
-			int totalTCPoints = 0;
+			// Flatten all TC results from all managers into a single list
+			var allTCResults = _fpl.Managers
+				.SelectMany(m => m.Value.GetX3Results.Select(tc => new {
+					ManagerId = m.Value.GetEntryId,
+					Tally = tc.tally,
+					Gw = tc.gw,
+					Description = tc.description
+				}))
+				.OrderByDescending(tc => tc.Tally)
+				.ThenBy(tc => tc.Gw)
+				.ThenBy(tc => tc.Description)
+				.ToList();
 
-			// Order by descending but exclude TCs which are null
-			_fpl.Managers.OrderByDescending(m => m.Value.GetX3Tally).ToList().ForEach(manager => {
-				
-				if (manager.Value.GetX3Tally == null) {
-					return;
-				}
+			if (allTCResults.Count == 0) {
+				Console.WriteLine("\n(No triple captain chips played yet)");
+				return;
+			}
 
-				totalValidTCs++;
-				totalTCPoints += (int) (manager.Value.GetX3Tally) *3;
-			});
+			// Calculate totals for average
+			int totalTCPoints = allTCResults.Sum(tc => tc.Tally * 3);
 
 			// Show Leaderboard
 			int placing = 0;
 			int displayedRank = 0;
 			int lastPoints = -1;
-			string lastX3Manager = "";
+			string lastDescription = "";
 
-			// Sort by points descending, then by GW ascending, then by X3Manager to group identical TC results
-			_fpl.Managers
-				.OrderByDescending(m => m.Value.GetX3Tally)
-				.ThenBy(m => m.Value.GetX3Gw)
-				.ThenBy(m => m.Value.GetX3Manager)
-				.ToList().ForEach(manager => {
-
-				if (manager.Value.GetX3Tally == null) {
-					return;
-				}
-
-				int points = (int) manager.Value.GetX3Tally;
-				if (++placing <= 15 || manager.Value.GetX3Manager == lastX3Manager) {
-					Result entry = _standings.GetEntry(manager.Value.GetEntryId);
+			foreach (var tc in allTCResults) {
+				if (++placing <= 15 || tc.Description == lastDescription) {
+					Result entry = _standings.GetEntry(tc.ManagerId);
 					var name = Utils.StandardiseName(entry.player_name);
 
 					// Update displayed rank only when points change
-					if (points != lastPoints) {
+					if (tc.Tally != lastPoints) {
 						displayedRank = placing;
-						lastPoints = points;
+						lastPoints = tc.Tally;
 					}
 
 					// Show new header when GW/player/points combination changes
-					bool sameGroup = manager.Value.GetX3Manager == lastX3Manager;
-					lastX3Manager = manager.Value.GetX3Manager;
+					bool sameGroup = tc.Description == lastDescription;
+					lastDescription = tc.Description;
 
 					if (!sameGroup) {
-						Console.WriteLine($"\n{Utils.ToOrdinal(displayedRank)}, {manager.Value.GetX3Manager}\n - {name}");
+						Console.WriteLine($"\n{Utils.ToOrdinal(displayedRank)}, {tc.Description}\n - {name}");
 					} else {
 						Console.WriteLine($" - {name}");
 					}
 				}
-
-			});
+			}
 
 			// League average
-			double average = (double)totalTCPoints / (double)totalValidTCs;
+			double average = (double)totalTCPoints / (double)allTCResults.Count;
 			Console.WriteLine($"\nLeague average: {average.ToString("0.00")} pts");
 		}
 
