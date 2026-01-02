@@ -32,6 +32,15 @@ dotnet watch run --project fpli.csproj
 
 The `--callrate` parameter controls API request rate (default: 1 call/second).
 
+## Run Scripts
+
+Convenience scripts in `run/` directory (execute from project root):
+
+```bash
+# LMS mini league analysis
+run/mini-league-analysis/lms    # League 107375, includes captaincy data
+```
+
 ## Architecture
 
 ```
