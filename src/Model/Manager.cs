@@ -13,6 +13,7 @@ namespace fpli {
 		int? _transfersResult = null;
 		int? _amTally = null;	// Assistant manager tally - only non-null after the AM chip is complete
 		int? _x3Tally = null;   // Triple captain tally - the value of this manager's use of the TC chip
+		int _x3Gw = 0;			// Gameweek when triple captain was played
 		int? _captaincySeasonTally = null; 	// Total points from captains/vc this season
 
 		string _x3Manager = "";
@@ -32,6 +33,7 @@ namespace fpli {
 		public bool DidRoll			{ get { return GetChip == null && GetTransferCount == 0 && _gw != 1; }}
 		public int? GetAmTally		{ get { return _amTally; }}
 		public int? GetX3Tally		{ get { return _x3Tally; }}
+		public int GetX3Gw			{ get { return _x3Gw; }}
 		public string GetX3Manager	{ get { return _x3Manager; }}
 		public string GetAmConfig	{ get { return _amConfig; }}
 
@@ -207,7 +209,8 @@ namespace fpli {
 			_managerHistory.chips.FindAll(ch => ch.name == "3xc").ForEach(ch => {
 
 				_x3Tally = 0;	// Set the tally from null to zero
-				
+				_x3Gw = ch.@event;
+
 				Console.WriteLine($"Manager history for {_entryId} 3xc played in {ch.@event}, pick history count {_picksHistory.Count}");
 
 				_picksHistory[ch.@event -1].picks.ForEach(p => {

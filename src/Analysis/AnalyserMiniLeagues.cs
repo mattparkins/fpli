@@ -638,30 +638,43 @@ namespace fpli {
 
 			// Show Leaderboard
 			int placing = 0;
-			int lastPoints = 0;
-			
-			_fpl.Managers.OrderByDescending(m => m.Value.GetX3Tally).ToList().ForEach(manager => {
-				
+			int displayedRank = 0;
+			int lastPoints = -1;
+			string lastX3Manager = "";
+
+			// Sort by points descending, then by GW ascending, then by X3Manager to group identical TC results
+			_fpl.Managers
+				.OrderByDescending(m => m.Value.GetX3Tally)
+				.ThenBy(m => m.Value.GetX3Gw)
+				.ThenBy(m => m.Value.GetX3Manager)
+				.ToList().ForEach(manager => {
+
 				if (manager.Value.GetX3Tally == null) {
 					return;
 				}
 
-				if (++placing <= 15 || lastPoints == (int) manager.Value.GetX3Tally) {
+				int points = (int) manager.Value.GetX3Tally;
+				if (++placing <= 15 || manager.Value.GetX3Manager == lastX3Manager) {
 					Result entry = _standings.GetEntry(manager.Value.GetEntryId);
 					var name = Utils.StandardiseName(entry.player_name);
-					int points = (int) manager.Value.GetX3Tally;
 
-					// Only show placing number if not equal with previous
-					bool equalWithLast = points == lastPoints;
-					lastPoints = points;
-					
-					if (!equalWithLast) { 
-						Console.WriteLine($"\n{Utils.ToOrdinal(placing)}, {manager.Value.GetX3Manager}\n - {name}");
+					// Update displayed rank only when points change
+					if (points != lastPoints) {
+						displayedRank = placing;
+						lastPoints = points;
+					}
+
+					// Show new header when GW/player/points combination changes
+					bool sameGroup = manager.Value.GetX3Manager == lastX3Manager;
+					lastX3Manager = manager.Value.GetX3Manager;
+
+					if (!sameGroup) {
+						Console.WriteLine($"\n{Utils.ToOrdinal(displayedRank)}, {manager.Value.GetX3Manager}\n - {name}");
 					} else {
 						Console.WriteLine($" - {name}");
 					}
 				}
-		
+
 			});
 
 			// League average
