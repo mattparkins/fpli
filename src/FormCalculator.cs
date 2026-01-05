@@ -5,18 +5,17 @@ namespace fpli {
 		/// <summary>
 		/// Get recent form string for a team (e.g., "WWDLWWdL")
 		/// W = home win, w = away win
-		/// D = home draw, d = away draw
-		/// L = home loss, l = away loss
+		/// = = home draw, - = away draw
+		/// space = loss (home or away)
 		/// Most recent result is on the RIGHT
 		/// </summary>
 		public static string GetFormString(int teamCode, int numGames = 8) {
 			var results = GetRecentResults(teamCode, numGames);
 			return string.Join("", results.Select(r => {
-				// W/w for win, = for draw, - for loss
-				// Lowercase w for away wins
+				// W/w for win, =/- for draw, space for loss
 				if (r.result == 'W') return r.isHome ? 'W' : 'w';
-				if (r.result == 'D') return '=';
-				if (r.result == 'L') return '-';
+				if (r.result == 'D') return r.isHome ? '=' : '-';
+				if (r.result == 'L') return ' ';
 				return '?';
 			}));
 		}

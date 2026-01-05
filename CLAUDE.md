@@ -39,6 +39,9 @@ Convenience scripts in `run/` directory (execute from project root):
 ```bash
 # LMS mini league analysis
 run/mini-league-analysis/lms    # League 107375, includes captaincy data
+
+# Fixture analysis (Matt's predictor game)
+run/fixture-analysis/matt       # GW1-10, previous picks: LIV ARS
 ```
 
 ## Architecture
