@@ -44,6 +44,7 @@ namespace fpli {
 		// Check and fix any data invalidity
 		public override void Preprocess() {
 			EloManager.Initialise(40);
+			DrawPropensityManager.Initialise();  // EMA-tracked draw rates with Elo-gap adjustment
 		}
 
 		DateTime analysisStart;
@@ -55,6 +56,7 @@ namespace fpli {
 
 		double[,] we = new double[21,21];	// 0,0 team id's are one-indexed
 		double[,] teamFixtureWE;			// gameweek, teamid
+		double[,] teamFixtureDrawRisk;		// gameweek, teamid - draw risk relative to league average
 
 		private void _calculateTeamStrengths() {
 		
@@ -74,29 +76,69 @@ namespace fpli {
 			}
 			Console.WriteLine("");
 
-			// Populate teamFixtureWE
+			// Populate teamFixtureWE and teamFixtureDrawRisk using LMS calculator
 			teamFixtureWE = new double[_config.fixtureCount +1, 21];
+			teamFixtureDrawRisk = new double[_config.fixtureCount +1, 21];
 
 			for (int gw = _config.gameweek; gw < _config.gameweek + _config.fixtureCount; gw++) {
-				//int index = _config.gameweek + _config.fixtureCount - gw;
 				int index = gw -_config.gameweek +1;
 
-				Console.WriteLine($"\nFixtures for GW{gw}");
+				// Collect all picks for this gameweek
+				var picks = new List<(string name, int teamCode, double pWin, double pDraw, double pLoss, bool isAway, string opponent, int oppCode)>();
 
-				// For every fixture in this gameweek
 				_fpl.Fixtures[gw].ForEach(fix => {
-					teamFixtureWE[index, fix.team_h] = _winExpectancyHome(fix.team_h, fix.team_a);
-					teamFixtureWE[index, fix.team_a] = _winExpectancyAway(fix.team_h, fix.team_a);
+					Team homeTeam = _fpl.Bootstrap.teams.Find(t => t.id == fix.team_h);
+					Team awayTeam = _fpl.Bootstrap.teams.Find(t => t.id == fix.team_a);
 
-					string hname = _fpl.Bootstrap.teams.Find(t => t.id == fix.team_h).short_name;
-					string aname = _fpl.Bootstrap.teams.Find(t => t.id == fix.team_a).short_name;
+					// Get LMS predictions for both teams
+					LMSPrediction homePred = LMSWinCalculator.Calculate(homeTeam.code, awayTeam.code, Venue.HOME);
+					LMSPrediction awayPred = LMSWinCalculator.Calculate(awayTeam.code, homeTeam.code, Venue.AWAY);
 
-					Console.WriteLine($"{hname} {teamFixtureWE[index, fix.team_h]:0.000} vs {teamFixtureWE[index, fix.team_a]:0.000} {aname} ");
+					teamFixtureWE[index, fix.team_h] = homePred.ProbWin;
+					teamFixtureWE[index, fix.team_a] = awayPred.ProbWin;
+					teamFixtureDrawRisk[index, fix.team_h] = homePred.DrawRisk;
+					teamFixtureDrawRisk[index, fix.team_a] = awayPred.DrawRisk;
+
+					// Add both teams as potential picks
+					picks.Add((homeTeam.short_name, homeTeam.code, homePred.ProbWin, homePred.ProbDraw, homePred.ProbLoss,
+						false, awayTeam.short_name, awayTeam.code));
+					picks.Add((awayTeam.short_name, awayTeam.code, awayPred.ProbWin, awayPred.ProbDraw, awayPred.ProbLoss,
+						true, homeTeam.short_name, homeTeam.code));
 				});
-			}
 
-			// Win expectancy is a good start, but WE includes draw points - is there a way of removing them using historic data?
-			// Perhaps reducing win % by the proportion of points that come from draws?  (would have to consider win to be worth 2pts, draw 1pt)
+				// Create Spectre table
+				var table = new Table();
+				table.Title = new TableTitle($"GW{gw}");
+				table.Border(TableBorder.Rounded);
+				table.AddColumn(new TableColumn("Form").Centered());
+				table.AddColumn(new TableColumn("Pick").Centered());
+				table.AddColumn(new TableColumn("Win%").RightAligned());
+				table.AddColumn(new TableColumn("Draw%").RightAligned());
+				table.AddColumn(new TableColumn("Loss%").RightAligned());
+				table.AddColumn(new TableColumn("vs").Centered());
+				table.AddColumn(new TableColumn("Form").Centered());
+
+				// Sort by Win% descending and add rows
+				foreach (var pick in picks.OrderByDescending(p => p.pWin)) {
+					string name = pick.isAway ? pick.name.ToLower() : pick.name;
+					string opp = pick.isAway ? pick.opponent : pick.opponent.ToLower();
+					string teamForm = FormCalculator.GetFormString(pick.teamCode, 8);
+					string oppForm = FormCalculator.GetFormString(pick.oppCode, 8);
+
+					table.AddRow(
+						teamForm,
+						$"[bold]{name}[/]",
+						$"{pick.pWin:P0}",
+						$"{pick.pDraw:P0}",
+						$"{pick.pLoss:P0}",
+						opp,
+						oppForm
+					);
+				}
+
+				AnsiConsole.Write(table);
+				Console.WriteLine();
+			}
 		}
 
 		private void _buildForcedMoves() {
@@ -159,7 +201,7 @@ namespace fpli {
 		// so we need to pass in the depth rather than infer it from the line.length
 
 		void _displayLine(TeamScoreEval[] line, int depth, Int64 nodes) {
-			
+
 			if (line == null) {
 				return;
 			}
@@ -172,15 +214,20 @@ namespace fpli {
 			_sb.Append($"{diff.TotalSeconds,4:0.0}s Depth {depth}, best {line[depth-1].eval:0.000}:");
 			for (int i = 0; i < depth; i++) {
 				string teamName = _fpl.Bootstrap.teams.Find(t => t.id == line[i].team).short_name;
-				
+
 				// is this team away?  If so lowercase it.
 				if (_fpl.Fixtures[_config.gameweek +i].FindIndex(fix => fix.team_a == line[i].team) != -1) {
 					teamName = teamName.ToLower();
 				}
-				
-				_sb.Append($"  {teamName} {line[i].eval:0.000}");
+
+				// Add draw risk indicator: ! = high risk (>1.2x), * = above average (>1.0x)
+				int gwIndex = i + 1;  // 1-indexed
+				double drawRisk = teamFixtureDrawRisk[gwIndex, line[i].team];
+				string riskInd = drawRisk > 1.2 ? "!" : (drawRisk > 1.0 ? "*" : "");
+
+				_sb.Append($"  {teamName}{riskInd} {line[i].eval:0.000}");
 			}
-			
+
 			_sb.Append($"  ({mn:0.00}m nodes at {nps:0.0}m/s)");
 			AnsiConsole.MarkupLine(_sb.ToString());
 		}

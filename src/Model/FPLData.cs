@@ -40,16 +40,19 @@ namespace fpli {
 
 		public async Task PreFetch(bool loadHistory) {
 
-			if (loadHistory) {
-				Console.WriteLine("Reading historic FPL data");
-				History.Load(_dataPath);
-			}
-
 			Console.WriteLine("Updating cache");
-			            
+
 			// Fetch Bootstrap, this will determine how we configure the cache for other items
 			Bootstrap = await Fetcher.FetchAndDeserialise<Bootstrap>(_cachePath+"bootstrap.json", _api+"bootstrap-static/", Utils.HoursAsSeconds(1));
 			EventStatus = await Fetcher.FetchAndDeserialise<EventStatus>(_cachePath+"event-status.json", _api+"event-status/", Utils.HoursAsSeconds(1));
+
+			if (loadHistory) {
+				Console.WriteLine("Reading historic FPL data");
+				History.Load(_dataPath);
+
+				// Sync completed gameweeks for current season to historic folder
+				await History.SyncCurrentSeason(Bootstrap, _api, _cachePath);
+			}
 			
 			int gw = Bootstrap.GetCurrentGameweekId();
 			if (gw < 1)

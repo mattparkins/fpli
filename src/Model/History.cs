@@ -8,6 +8,7 @@ namespace fpli {
 		public History() {}
 
 		private string _historyPath;
+		private string _api;
 
 		public void Load(string path) {
 			_historyPath = path+"historic/";
@@ -40,6 +41,63 @@ namespace fpli {
 				if (Int32.TryParse(Regex.Match(fn, @"\d+", RegexOptions.RightToLeft).Value, out gw)) {
 					Fixtures[season][gw] = Utils.DeserializeFromFile<List<Fixture>>(fn);
 				}
+			}
+		}
+
+		// Sync completed gameweeks for the current season from FPL API to historic folder
+		public async Task SyncCurrentSeason(fpli.Bootstrap bootstrap, string api, string cachePath) {
+			_api = api;
+
+			// Determine current season from bootstrap (use the year from the first gameweek deadline)
+			var firstEvent = bootstrap.events.FirstOrDefault();
+			if (firstEvent == null) return;
+
+			int season = firstEvent.deadline_time.Year;
+			string seasonPath = _historyPath + season + "/";
+
+			// Create season directory if it doesn't exist
+			if (!Directory.Exists(seasonPath)) {
+				Console.WriteLine($"Creating historic folder for {season}");
+				Directory.CreateDirectory(seasonPath);
+			}
+
+			// Ensure we have a Fixtures dictionary for this season
+			if (!Fixtures.ContainsKey(season)) {
+				Fixtures[season] = new Dictionary<int, List<Fixture>>();
+			}
+
+			// Find all completed gameweeks
+			int currentGw = bootstrap.GetCurrentGameweekId();
+			int syncedCount = 0;
+
+			for (int gw = 1; gw <= bootstrap.events.Count; gw++) {
+				var gameweek = bootstrap.events[gw - 1];
+				bool isComplete = gw < currentGw || (gw == currentGw && gameweek.finished);
+
+				if (!isComplete) continue;
+
+				string historicFile = $"{seasonPath}fixtures_GW{gw}_complete.json";
+
+				// Skip if already exists in historic folder
+				if (File.Exists(historicFile)) continue;
+
+				// Download to cache first
+				string cacheFile = $"{cachePath}fixtures_GW{gw}_complete.json";
+				Console.WriteLine($"Syncing GW{gw} to historic/{season}/");
+				var fixtures = await Fetcher.FetchAndDeserialise<List<Fixture>>(
+					cacheFile,
+					$"{_api}fixtures/?event={gw}",
+					Utils.DaysAsSeconds(30));
+
+				// Copy from cache to historic folder
+				File.Copy(cacheFile, historicFile);
+
+				Fixtures[season][gw] = fixtures;
+				syncedCount++;
+			}
+
+			if (syncedCount > 0) {
+				Console.WriteLine($"Synced {syncedCount} gameweek(s) to historic/{season}/");
 			}
 		}
 	}

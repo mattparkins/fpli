@@ -147,7 +147,7 @@ namespace fpli {
 		private static void _processResult(int season, int hcode, int acode, int hscore, int ascore) {
 			double hr = TeamElo[Venue.HOME][hcode].Rating;
 			double ar = TeamElo[Venue.AWAY][acode].Rating;
-			double hsc = hscore > ascore ? 1.0 : 0.0;
+			double hsc = hscore > ascore ? 1.0 : (hscore == ascore ? 0.5 : 0.0);
 
 			double hdiff = TeamElo[Venue.HOME][hcode].NewMatch(ar, 	hsc);
 			double adiff = TeamElo[Venue.AWAY][acode].NewMatch(hr, 1.0-hsc);
