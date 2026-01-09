@@ -100,7 +100,7 @@ namespace fpli {
 
             int absNumber = Math.Abs(number);
             int lastTwoDigits = absNumber % 100;
-            
+
             // Special case for 11, 12, and 13 (e.g., 11th, 12th, 13th)
             if (lastTwoDigits >= 11 && lastTwoDigits <= 13)
             {
@@ -119,5 +119,54 @@ namespace fpli {
 
             return number + suffix;
         }
+
+        // Social media formatting utilities
+
+        // Braille Pattern Blank (U+2800) - invisible character that preserves line breaks in Facebook
+        public const string FacebookSpacer = "\u2800";
+
+        // Convert text to Unicode Bold Sans-Serif characters for Facebook posts
+        public static string ToUnicodeBold(string text) {
+            var result = new System.Text.StringBuilder();
+            foreach (char c in text) {
+                if (c >= 'A' && c <= 'Z') {
+                    // Bold sans-serif uppercase: U+1D5D4 to U+1D5ED
+                    result.Append(char.ConvertFromUtf32(0x1D5D4 + (c - 'A')));
+                } else if (c >= 'a' && c <= 'z') {
+                    // Bold sans-serif lowercase: U+1D5EE to U+1D607
+                    result.Append(char.ConvertFromUtf32(0x1D5EE + (c - 'a')));
+                } else if (c >= '0' && c <= '9') {
+                    // Bold sans-serif digits: U+1D7EC to U+1D7F5
+                    result.Append(char.ConvertFromUtf32(0x1D7EC + (c - '0')));
+                } else {
+                    result.Append(c);
+                }
+            }
+            return result.ToString();
+        }
+
+        // Convert text to Unicode Italic Sans-Serif characters for Facebook posts
+        public static string ToUnicodeItalic(string text) {
+            var result = new System.Text.StringBuilder();
+            foreach (char c in text) {
+                if (c >= 'A' && c <= 'Z') {
+                    // Italic sans-serif uppercase: U+1D608 to U+1D621
+                    result.Append(char.ConvertFromUtf32(0x1D608 + (c - 'A')));
+                } else if (c >= 'a' && c <= 'z') {
+                    // Italic sans-serif lowercase: U+1D622 to U+1D63B
+                    result.Append(char.ConvertFromUtf32(0x1D622 + (c - 'a')));
+                } else if (c >= '0' && c <= '9') {
+                    // No italic digits in Unicode, use regular
+                    result.Append(c);
+                } else {
+                    result.Append(c);
+                }
+            }
+            return result.ToString();
+        }
+
+        // WhatsApp formatting - wrap text in markers
+        public static string ToWhatsAppBold(string text) => $"*{text}*";
+        public static string ToWhatsAppItalic(string text) => $"_{text}_";
 }
 }

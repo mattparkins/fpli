@@ -19,6 +19,8 @@ namespace fpli {
         public int maxManagers              { get; private set; } = 50;     // maximum number of managers to retrieve
         public int leagueId                 { get; private set; } = 0;      // the minileagueId to analyse
         public bool incManagersInCaptaincy  { get; private set; } = false;  // include managers in captaincy summary
+        public bool facebookFormat          { get; private set; } = false;  // format output for Facebook posts
+        public bool whatsappFormat          { get; private set; } = false;  // format output for WhatsApp
 
         // Fixture analysis options
         public int gameweek                 { get; private set; } = 0;      // Which gameweek to target
@@ -42,6 +44,8 @@ namespace fpli {
 			Console.WriteLine("\nLeague analysis options");
 			Console.WriteLine(" --maxManagers <int, default 50>         maxiumum number of managers to retrieve");
             Console.WriteLine(" --incManagersInCaptaincy                include manager names in captaincy summary.");
+            Console.WriteLine(" --facebook                              format output for Facebook posts (bold headers, no emoji triggers)");
+            Console.WriteLine(" --whatsapp                              format output for WhatsApp (*bold* headers)");
 
             Console.WriteLine("\nFixture analysis options");
 			Console.WriteLine(" --previousPicks <string>...             picks so far, one per gameweek ");
@@ -66,6 +70,8 @@ namespace fpli {
                 leagueId = _retrieveOption(args, "--leagueId", 0);
                 maxManagers = _retrieveOption(args, "--maxManagers", maxManagers);
                 incManagersInCaptaincy = _retrieveOptionExists(args, "--incManagersInCaptaincy");
+                facebookFormat = _retrieveOptionExists(args, "--facebook");
+                whatsappFormat = _retrieveOptionExists(args, "--whatsapp");
             }
 
             // Retrieve further settings

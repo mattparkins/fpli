@@ -63,17 +63,19 @@ namespace fpli {
 			_reportHits();
 			_reportBurnedTransfers();
 
-			Console.WriteLine("\n\n\nPostGW Analysis:\n");
+			_writeSectionBreak(3);
+			_writeHeader("PostGW Analysis:");
+			_writeBlankLine();
 
 			_reportPoints();
 			_reportBiggestRankMoves();
 			_reportPointsOnBench();
 			_reportTransferSummary();
 			_reportTransferDetail();
-			_reportCaptaincyReturns();		
+			_reportCaptaincyReturns();
 
-
-			Console.WriteLine("\n\nSeason stats:");
+			_writeSectionBreak();
+			_writeHeader("Season stats:");
 
 			_reportMostPointsOnBenchTable();
 			_reportHighestScoresTable();
@@ -88,22 +90,26 @@ namespace fpli {
 
 
 		void _reportChipUsage() {
-			
+
 			int totalChipsPlayed = 0;
 			var list = _fpl.Standings[_config.leagueId].ChipUsage.OrderByDescending(v => v.Value.Count);
-			
+
 			foreach(var kv in list) {
-				if (kv.Key != "none") { 
+				if (kv.Key != "none") {
 					totalChipsPlayed += kv.Value.Count;
 				}
 			}
 
 			if (totalChipsPlayed == 0) {
-				Console.WriteLine("\nNo Active Chips\n");
+				_writeBlankLine();
+				_writeHeader("No Active Chips");
+				_writeBlankLine();
 				return;
 			}
 
-			Console.WriteLine("\nActive Chips\n");
+			_writeBlankLine();
+			_writeHeader("Active Chips");
+			_writeBlankLine();
 
 			foreach(var kv in list) {
 				if (kv.Key != "none") {
@@ -154,7 +160,9 @@ namespace fpli {
 
 
 		void _reportCaptaincy() {
-			Console.WriteLine("\nCaptaincy\n");
+			_writeBlankLine();
+			_writeHeader("Captaincy");
+			_writeBlankLine();
 
 			var list = _fpl.Standings[_config.leagueId].Captaincy.OrderByDescending(v => v.Value.Count);
 			int totalManagers = _fpl.Managers.Count;	// this seems risky - what if we've loaded another league??  Test this league!
@@ -221,9 +229,8 @@ namespace fpli {
 		}
 
 
-		private void _reportPoints() { 
-			Console.WriteLine("Points (net)");
-			Console.WriteLine("------------");
+		private void _reportPoints() {
+			_writeHeader("Points (net)", 12);
 			
 			int mostPoints = _fpl.Managers.Max(m => m.Value.GetNetPoints);
 			Console.Write($"Highest: {mostPoints} pts");
@@ -261,8 +268,8 @@ namespace fpli {
 
 
 		private void _reportCaptaincyReturns() {
-			Console.WriteLine($"\nCaptain Returns");
-			Console.WriteLine($"---------------");
+			_writeBlankLine();
+			_writeHeader("Captain Returns", 15);
 
 			var captains = _fpl.Standings[_config.leagueId].Captaincy
 				.Select(kv => new {
@@ -279,10 +286,9 @@ namespace fpli {
 		}
 
 
-		private void _reportPointsOnBench() { 
-
-			Console.WriteLine("\nBench.");
-			Console.WriteLine("-------");
+		private void _reportPointsOnBench() {
+			_writeBlankLine();
+			_writeHeader("Bench", 7);
 
 			double avgPoints = _fpl.Managers.Average(m => m.Value.GetBenchPoints);
 			Console.WriteLine($"Avg : {avgPoints:0.00} pts");
@@ -308,9 +314,9 @@ namespace fpli {
 		}
 
 
-		private void _reportTransferSummary() { 
-			Console.WriteLine("\nNet transfer points.");
-			Console.WriteLine("--------------------");
+		private void _reportTransferSummary() {
+			_writeBlankLine();
+			_writeHeader("Net transfer points", 20);
 			
 			int mostPoints = _fpl.Managers.Max(m => m.Value.GetTransfersResult());
 			Console.WriteLine($"Best: {mostPoints} pts");
@@ -400,8 +406,8 @@ namespace fpli {
 
 
 		private void _reportMostPointsOnBenchTable() {
-			Console.WriteLine("\n\nSeason Points on Bench");
-			Console.WriteLine("------------------------");
+			_writeSectionBreak();
+			_writeHeader("Season Points on Bench", 24);
 
 			int placing = 0;
 			int lastPoints = 0;
@@ -410,33 +416,33 @@ namespace fpli {
 			_fpl.Managers.OrderByDescending(m => m.Value.SeasonPointsOnBench()).ToList().ForEach(manager => {
 
 				leagueBenchPoints += manager.Value.SeasonPointsOnBench();
-				
-				//placing++;
+
 				if (++placing <= 10) {
 					var name = _standings.GetEntry(manager.Value.GetEntryId).player_name;
 					var delta = manager.Value.GetBenchPoints;
-					var ds = delta > 0 ? $"+{delta}" : delta < 0 ? $"-{delta}" : "=";
+					var ds = _formatPointDelta(delta);
 
 					// Only show placing number if not equal with previous
 					bool equalWithLast = manager.Value.SeasonPointsOnBench() == lastPoints;
 					lastPoints = manager.Value.SeasonPointsOnBench();
 					var placingDisplay = equalWithLast ? " -- ": $"{Utils.ToOrdinal(placing)},";
 
-					Console.WriteLine($"{placingDisplay} {Utils.StandardiseName(name)}, {manager.Value.SeasonPointsOnBench()} pts ({ds})");
+					var suffix = string.IsNullOrEmpty(ds) ? "" : $" {ds}";
+					Console.WriteLine($"{placingDisplay} {Utils.StandardiseName(name)}, {manager.Value.SeasonPointsOnBench()} pts{suffix}");
 				}
 			});
 
 			// League average
 			double average = (double)leagueBenchPoints / (double)_fpl.Managers.Count;
-			//Console.WriteLine("--");
-			Console.WriteLine($"\nLeague average: {average.ToString("0.00")} pts");
-			
+			_writeBlankLine();
+			_writeLeagueAverage($"League average: {average.ToString("0.00")} pts");
+
 		}
 
 
 		private void _reportCaptaincyTable() {
-			Console.WriteLine("\n\nCaptaincy Leaderboard");
-			Console.WriteLine("-------------------------");
+			_writeSectionBreak();
+			_writeHeader("Captaincy Leaderboard", 25);
 
 			int placing = 0;
 			int lastPoints = 0;
@@ -449,24 +455,27 @@ namespace fpli {
 				if (++placing <= 10) {
 					var name = _standings.GetEntry(manager.Value.GetEntryId).player_name;
 					int delta = 0;
-					string ds = "= none";
+					string captainName = "none";
 					int capId = manager.Value.GetCaptain;
 					if (capId > 0) {
 						FPLData.Instance.Elements.TryGetValue(capId, out ElementSummary el);
 						ElementHistory eh = el.history.LastOrDefault();
 						delta = (eh?.total_points ?? 0) * manager.Value.GetCaptainMultiplier;
-						ds = (delta > 0 ? $"+{delta}" : delta < 0 ? $"-{delta}" : "=") + " " + _fpl.Bootstrap.GetElement(capId).web_name;
+						captainName = _fpl.Bootstrap.GetElement(capId).web_name;
 					}
+					var ds = _formatPointDelta(delta, $" {captainName}");
 					bool equalWithLast = manager.Value.CaptaincySeasonTally() == lastPoints;
 					lastPoints = manager.Value.CaptaincySeasonTally();
 					var placingDisplay = equalWithLast ? " -- " : $"{Utils.ToOrdinal(placing)},";
-					Console.WriteLine($"{placingDisplay} {Utils.StandardiseName(name)}, {manager.Value.CaptaincySeasonTally()} pts ({ds})");
+					Console.WriteLine($"{placingDisplay} {Utils.StandardiseName(name)}, {manager.Value.CaptaincySeasonTally()} pts {ds}");
 				}
 			});
 
 			// League average
 			double average = (double)leagueCaptaincyPoints / (double)totalManagers;
-			Console.WriteLine($"...\nLeague average: {average.ToString("0.00")} pts\n...");
+			Console.WriteLine("...");
+			_writeLeagueAverage($"League average: {average.ToString("0.00")} pts");
+			Console.WriteLine("...");
 
 
 			// Show bottom 5 managers by captaincy tally, with correct league placing
@@ -477,18 +486,19 @@ namespace fpli {
 			bottomManagers.ForEach(manager => {
 				var name = _standings.GetEntry(manager.Value.GetEntryId).player_name;
 				int delta = 0;
-				string ds = "= none";
+				string captainName = "none";
 				int capId = manager.Value.GetCaptain;
 				if (capId > 0) {
 					FPLData.Instance.Elements.TryGetValue(capId, out ElementSummary el);
 					ElementHistory eh = el.history.LastOrDefault();
 					delta = (eh?.total_points ?? 0) * manager.Value.GetCaptainMultiplier;
-					ds = (delta > 0 ? $"+{delta}" : delta < 0 ? $"-{delta}" : "=") + " " + _fpl.Bootstrap.GetElement(capId).web_name;
+					captainName = _fpl.Bootstrap.GetElement(capId).web_name;
 				}
+				var ds = _formatPointDelta(delta, $" {captainName}");
 				bool equalWithLast = manager.Value.CaptaincySeasonTally() == lastPoints;
 				lastPoints = manager.Value.CaptaincySeasonTally();
 				var placingDisplay = equalWithLast ? " --  " : $"{Utils.ToOrdinal(placing)},";
-				Console.WriteLine($"{placingDisplay} {Utils.StandardiseName(name)}, {manager.Value.CaptaincySeasonTally()} pts ({ds})");
+				Console.WriteLine($"{placingDisplay} {Utils.StandardiseName(name)}, {manager.Value.CaptaincySeasonTally()} pts {ds}");
 				placing++;
 			});
 		}
@@ -497,8 +507,8 @@ namespace fpli {
 
 		private void _reportMostHitsTable()
 		{
-			Console.WriteLine("\n\nHits Leaderboard");
-			Console.WriteLine("------------------");
+			_writeSectionBreak();
+			_writeHeader("Hits Leaderboard", 18);
 
 			// Only include managers who have taken hits
 			var managersWithHits = _fpl.Managers.Where(m => m.Value.SeasonHits() > 0)
@@ -514,23 +524,25 @@ namespace fpli {
 					Result entry = _standings.GetEntry(manager.Value.GetEntryId);
 					var name = entry.player_name;
 					var tc = manager.Value.GetTransferCost;
-					var tcs = tc == 0 ? "=" : "-" + tc;
+					var tcs = _formatHitDelta(tc);
 					bool equalWithLast = manager.Value.SeasonHits() == lastPoints;
 					lastPoints = manager.Value.SeasonHits();
 					var placingDisplay = equalWithLast ? " -- " : $"{Utils.ToOrdinal(placing)},";
-					Console.WriteLine($"{placingDisplay} {Utils.StandardiseName(name)}, -{manager.Value.SeasonHits()} pts ({tcs})");
+					var suffix = string.IsNullOrEmpty(tcs) ? "" : $" {tcs}";
+					Console.WriteLine($"{placingDisplay} {Utils.StandardiseName(name)}, -{manager.Value.SeasonHits()} pts{suffix}");
 				}
 			});
 
 			// League average
 			double average = (double)leagueHitPoints / (double)_fpl.Managers.Count;
-			Console.WriteLine($"\nLeague average: -{average.ToString("0.00")} pts");
+			_writeBlankLine();
+			_writeLeagueAverage($"League average: -{average.ToString("0.00")} pts");
 		}
 
 
 		private void _reportNoHitClub() {
-			Console.WriteLine("\n\nNo Hit Club");
-			Console.WriteLine("-----------");
+			_writeSectionBreak();
+			_writeHeader("No Hit Club", 11);
 
 			var nhcList = _fpl.Managers.Where(m => m.Value.SeasonHits() == 0).ToList();
 
@@ -555,8 +567,8 @@ namespace fpli {
 
 
 		private void _reportHighestValueTeamTable() {
-			Console.WriteLine("\n\nTeam Value Leaderboard");
-			Console.WriteLine("------------------------");
+			_writeSectionBreak();
+			_writeHeader("Team Value Leaderboard", 24);
 
 			int totalManagers = _fpl.Managers.Count;
 			var orderedManagers = _fpl.Managers.OrderByDescending(m => m.Value.GetCurrentTeamValue()).ToList();
@@ -581,7 +593,9 @@ namespace fpli {
 
 			// League average
 			double average = (double)leagueValue / (double)totalManagers / 10d;
-			Console.WriteLine($"...\nLeague average: £{average.ToString("0.0")}m\n...");
+			Console.WriteLine("...");
+			_writeLeagueAverage($"League average: £{average.ToString("0.0")}m");
+			Console.WriteLine("...");
 
 			// Bottom 5
 			var bottomManagers = _fpl.Managers.OrderBy(m => m.Value.GetCurrentTeamValue()).Take(5).ToList();
@@ -601,8 +615,8 @@ namespace fpli {
 
 
 		private void _reportHighestScoresTable() {
-			Console.WriteLine("\n\nMost Net Points in a GW");
-			Console.WriteLine("----------------------------");
+			_writeSectionBreak();
+			_writeHeader("Most Net Points in a GW", 28);
 
 			List<(int, int, int)> np = new();
 
@@ -631,12 +645,13 @@ namespace fpli {
 
 			// League average
 			double average = (double)totalPoints / (double)totalEntries;
-			Console.WriteLine($"\nLeague average: {average.ToString("0.00")} pts");
+			_writeBlankLine();
+			_writeLeagueAverage($"League average: {average.ToString("0.00")} pts");
 		}
 
 		private void _reportTCLeaderboard() {
-			Console.WriteLine("\n\nTriple Captain Leaderboard");
-			Console.Write("-----------------------------");
+			_writeSectionBreak();
+			_writeHeader("Triple Captain Leaderboard", 29);
 
 			// Flatten all TC results from all managers into a single list
 			var allTCResults = _fpl.Managers
@@ -690,7 +705,8 @@ namespace fpli {
 
 			// League average
 			double average = (double)totalTCPoints / (double)allTCResults.Count;
-			Console.WriteLine($"\nLeague average: {average.ToString("0.00")} pts");
+			_writeBlankLine();
+			_writeLeagueAverage($"League average: {average.ToString("0.00")} pts");
 		}
 
 
@@ -755,10 +771,11 @@ namespace fpli {
 				int pts = _fpl.Live.elements.Find(e => e.id == el).stats.total_points;
 				Console.Write($"{glue}{_fpl.Bootstrap.GetElement(el).web_name}({pts})");
 				glue = ", ";
-			});			
+			});
 
 			if (transferCost > 0) {
-				Console.Write($", hit ({transferCost})");
+				var hitFormat = _isSocialMediaFormat ? $"hit [{transferCost}]" : $"hit ({transferCost})";
+				Console.Write($", {hitFormat}");
 			}
 
 			Console.Write(".\n    In: ");
@@ -780,8 +797,72 @@ namespace fpli {
 				int pts = _fpl.Live.elements.Find(e => e.id == el).stats.total_points;
 				Console.Write($"{glue}{_fpl.Bootstrap.GetElement(el).web_name}({pts})");
 				glue = ", ";
-			});			
+			});
 			Console.WriteLine(".");
+		}
+
+
+		// Social media formatting helpers
+
+		bool _isSocialMediaFormat => _config.facebookFormat || _config.whatsappFormat;
+
+		void _writeHeader(string title, int underlineLength = 0) {
+			if (_config.facebookFormat) {
+				Console.WriteLine(Utils.ToUnicodeBold(title));
+			} else if (_config.whatsappFormat) {
+				Console.WriteLine(Utils.ToWhatsAppBold(title));
+			} else {
+				Console.WriteLine(title);
+				if (underlineLength > 0) {
+					Console.WriteLine(new string('-', underlineLength));
+				}
+			}
+		}
+
+		void _writeSectionBreak(int newlines = 2) {
+			if (_config.facebookFormat) {
+				for (int i = 0; i < newlines - 1; i++) {
+					Console.WriteLine(Utils.FacebookSpacer);
+				}
+			} else {
+				Console.Write(new string('\n', newlines));
+			}
+		}
+
+		// Write a blank line that Facebook won't collapse
+		void _writeBlankLine() {
+			Console.WriteLine(_config.facebookFormat ? Utils.FacebookSpacer : "");
+		}
+
+		// Write League average line with italic formatting for social media
+		void _writeLeagueAverage(string text) {
+			if (_config.facebookFormat) {
+				Console.WriteLine(Utils.ToUnicodeItalic(text));
+			} else if (_config.whatsappFormat) {
+				Console.WriteLine(Utils.ToWhatsAppItalic(text));
+			} else {
+				Console.WriteLine(text);
+			}
+		}
+
+		// Format hit cost delta - omit (=) for social media, use square brackets for negatives
+		string _formatHitDelta(int transferCost) {
+			if (transferCost == 0) {
+				return _isSocialMediaFormat ? "" : "(=)";
+			}
+			return _isSocialMediaFormat ? $"[-{transferCost}]" : $"(-{transferCost})";
+		}
+
+		// Format point delta - omit (=) for social media, use square brackets for negatives
+		string _formatPointDelta(int delta, string suffix = "") {
+			if (delta == 0) {
+				return _isSocialMediaFormat ? "" : $"(={suffix})";
+			}
+			string sign = delta > 0 ? "+" : "";
+			if (_isSocialMediaFormat) {
+				return $"[{sign}{delta}{suffix}]";
+			}
+			return $"({sign}{delta}{suffix})";
 		}
 	}
 }
