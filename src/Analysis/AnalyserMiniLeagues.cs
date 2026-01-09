@@ -674,33 +674,44 @@ namespace fpli {
 			// Calculate totals for average
 			int totalTCPoints = allTCResults.Sum(tc => tc.Tally * 3);
 
+			// Group by description to count managers per TC result
+			var groupedResults = allTCResults
+				.GroupBy(tc => new { tc.Tally, tc.Description })
+				.OrderByDescending(g => g.Key.Tally)
+				.ToList();
+
 			// Show Leaderboard
 			int placing = 0;
-			int displayedRank = 0;
 			int lastPoints = -1;
-			string lastDescription = "";
+			int displayedRank = 0;
 
-			foreach (var tc in allTCResults) {
-				if (++placing <= 15 || tc.Description == lastDescription) {
-					Result entry = _standings.GetEntry(tc.ManagerId);
-					var name = Utils.StandardiseName(entry.player_name);
+			foreach (var group in groupedResults) {
+				placing += group.Count();
 
-					// Update displayed rank only when points change
-					if (tc.Tally != lastPoints) {
-						displayedRank = placing;
-						lastPoints = tc.Tally;
-					}
-
-					// Show new header when GW/player/points combination changes
-					bool sameGroup = tc.Description == lastDescription;
-					lastDescription = tc.Description;
-
-					if (!sameGroup) {
-						Console.WriteLine($"\n{Utils.ToOrdinal(displayedRank)}, {tc.Description}\n - {name}");
-					} else {
-						Console.WriteLine($" - {name}");
-					}
+				// Update displayed rank only when points change
+				bool sameAsLast = group.Key.Tally == lastPoints;
+				if (!sameAsLast) {
+					displayedRank = placing - group.Count() + 1;
+					lastPoints = group.Key.Tally;
 				}
+
+				// Stop after 15th place (but show all tied at that position)
+				if (displayedRank > 15) break;
+
+				// Format: "1st, GW6 Haaland 48 pts, 5 managers" or "12th, GW13 Thiago 39 pts, Richard Pennystan"
+				string managerText;
+				if (group.Count() == 1) {
+					var entry = _standings.GetEntry(group.First().ManagerId);
+					managerText = Utils.StandardiseName(entry.player_name);
+				} else {
+					managerText = $"{group.Count()} managers";
+				}
+
+				// Strip parentheses from description
+				var description = group.Key.Description.Trim('(', ')');
+				var ordinal = displayedRank < 10 ? $" {Utils.ToOrdinal(displayedRank)}" : Utils.ToOrdinal(displayedRank);
+				var placingDisplay = sameAsLast ? " --   " : $"{ordinal}, ";
+				Console.WriteLine($"{placingDisplay}{description}, {managerText}");
 			}
 
 			// League average

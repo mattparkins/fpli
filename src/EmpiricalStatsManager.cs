@@ -23,8 +23,6 @@ namespace fpli {
 		// League-wide baseline draw rate
 		public static double LeagueDrawRate { get; private set; }
 
-		private static bool _initialised = false;
-
 		public static void Initialise(int numSeasons = 2) {
 			HomeStats.Clear();
 			AwayStats.Clear();
@@ -48,8 +46,6 @@ namespace fpli {
 
 			Console.WriteLine($"EmpiricalStats: Processed {seasonsProcessed} seasons, {totalMatches} matches");
 			Console.WriteLine($"EmpiricalStats: League draw rate = {LeagueDrawRate:P1}");
-
-			_initialised = true;
 		}
 
 		private static void _processSeason(int season, ref int totalMatches, ref int totalDraws) {
