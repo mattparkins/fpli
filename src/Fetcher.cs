@@ -73,9 +73,8 @@ namespace fpli {
 
                 Console.WriteLine($"error: {e.Message}");
 				Environment.Exit(-1);
+				return null;  // Unreachable but required for compiler
             }
-
-            return null;
         }
 	}
 }

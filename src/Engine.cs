@@ -15,6 +15,10 @@ namespace fpli {
 			// Initialise
 			_fpl.Init(_config);
 			Analyser analyser = Analyser.Factory(config.intent, _fpl, _config);
+			if (analyser == null) {
+				Program.Quit($"No analyser available for intent: {config.intent}");
+				return;
+			}
 
 			// Load
 			await _fpl.PreFetch(true);

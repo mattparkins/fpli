@@ -91,15 +91,14 @@ namespace fpli {
                     ChipTarget3xc[manager.GetCaptain].Add(manager.GetEntryId);
                 }
 
-                if (chip == "manager") {
-                    //Element 15 is the assistant manager
-                    int managerElID = manager.GetPicks.picks[15].element;
-
-                    if (!ChipTargetAss.ContainsKey(managerElID)) {
-                        ChipTargetAss[managerElID] = new List<int>();
-                    }
-                    ChipTargetAss[managerElID].Add(manager.GetEntryId);
-                }
+                // Assistant Manager chip - defunct, picks[15] no longer exists
+                // if (chip == "manager") {
+                //     int managerElID = manager.GetPicks.picks[15].element;
+                //     if (!ChipTargetAss.ContainsKey(managerElID)) {
+                //         ChipTargetAss[managerElID] = new List<int>();
+                //     }
+                //     ChipTargetAss[managerElID].Add(manager.GetEntryId);
+                // }
             });
         }
     }

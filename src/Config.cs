@@ -25,8 +25,8 @@ namespace fpli {
         // Fixture analysis options
         public int gameweek                 { get; private set; } = 0;      // Which gameweek to target
         public int fixtureCount             { get; private set; } = 0;      // Number of fixtures to analyse
-        public List<string> fixturePicks    { get; set;}                    // fixture analysis, teams have already picked successfully 
-        public List<string> excludeTeams    { get; set;}                    // fixture analysis, which teams to exclude
+        public List<string> fixturePicks    { get; set;} = new List<string>();  // fixture analysis, teams have already picked successfully
+        public List<string> excludeTeams    { get; set;} = new List<string>();  // fixture analysis, which teams to exclude
 
 
         public static void displayHelp() {

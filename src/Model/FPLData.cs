@@ -24,6 +24,9 @@ namespace fpli {
 			_cachePath = dataPath + ".cache/";
 			_dataPath = dataPath;
 			_api = api;
+			if (Instance != null) {
+				Console.WriteLine("Warning: FPLData instance already exists, overwriting.");
+			}
 			Instance = this;
 		}
 

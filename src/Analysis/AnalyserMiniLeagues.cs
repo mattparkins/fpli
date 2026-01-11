@@ -207,7 +207,7 @@ namespace fpli {
 				rollCount += kv.Value.DidRoll ? 1 : 0;
 			}
 	
-			Console.WriteLine($"\nAverage hit: {totalHitPoints / (float) list.Count():0.00} pts");	
+			Console.WriteLine($"\nAverage hit: {Utils.SafeDivide(totalHitPoints, list.Count()):0.00} pts");	
 
 			if (largestHitPoints != 0) {	
 				Console.Write($"Biggest hit: {largestHitPoints}pts (");

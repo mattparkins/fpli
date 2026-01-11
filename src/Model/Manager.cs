@@ -1,6 +1,3 @@
-using System.Net;
-using System.Security.Cryptography.X509Certificates;
-
 namespace fpli {
 	public class Manager {
 		int _entryId;
@@ -214,11 +211,11 @@ namespace fpli {
 		}
 
 		public int GetCurrentCashInBank() {
-			return _managerHistory.current.Last().bank;
+			return _managerHistory.current.Count > 0 ? _managerHistory.current.Last().bank : 0;
 		}
 
 		public int GetCurrentTeamValue() {
-			return _managerHistory.current.Last().value;
+			return _managerHistory.current.Count > 0 ? _managerHistory.current.Last().value : 0;
 		}
 
 		// Returns a tuple of: net points, gameweek, entry id
@@ -264,40 +261,27 @@ namespace fpli {
 			});
 			
 
-			// Find the value of the AM chip.  First locate which week this manager used their AM chip
-			// Then tally the points from the AM over the following 3 gameweeks, leave as null if we haven't 
-			// reached the third gameweek.
-
-			_managerHistory.chips.FindAll(ch => ch.name == "manager").ForEach(ch => {
-				int gw = ch.@event;
-
-				if (gw + 2 <= _picksHistory.Count) {	
-
-					_amTally = 0;	// Set the tally from null to zero	
-					string mans = "(GW" + gw +": "; 
-					string glue = "";
-
-					for (int i = 0; i < 3; i++) {
-
-						// Get the manager name
-
-						int amEl = _picksHistory[gw + i -1].picks[15].element;
-						FPLData.Instance.Elements.TryGetValue(amEl, out ElementSummary el);
-						el.history.FindAll(h => h.round == gw + i)?.ForEach(h => _amTally += h.total_points);
-						mans += $"{glue}{FPLData.Instance.Bootstrap.elements.Find(e => e.id == amEl).web_name}";
-						glue = ", ";
-
-						//Report result after 3 gws
-						if (i >= 2) {
-							mans += ")";
-							Console.WriteLine($"Entry {_entryId}, Assistant Manager {mans} scored {_amTally} from GW{gw}");
-							_amConfig = mans;
-						}
-					}
-				} else {
-					//Console.WriteLine($"Entry {_entryId}, Incomplete assistant manager chip used in GW{gw}");
-				}
-			});
+			// Assistant Manager chip - defunct, picks[15] no longer exists
+			// _managerHistory.chips.FindAll(ch => ch.name == "manager").ForEach(ch => {
+			// 	int gw = ch.@event;
+			// 	if (gw + 2 <= _picksHistory.Count) {
+			// 		_amTally = 0;
+			// 		string mans = "(GW" + gw +": ";
+			// 		string glue = "";
+			// 		for (int i = 0; i < 3; i++) {
+			// 			int amEl = _picksHistory[gw + i -1].picks[15].element;
+			// 			FPLData.Instance.Elements.TryGetValue(amEl, out ElementSummary el);
+			// 			el.history.FindAll(h => h.round == gw + i)?.ForEach(h => _amTally += h.total_points);
+			// 			mans += $"{glue}{FPLData.Instance.Bootstrap.elements.Find(e => e.id == amEl).web_name}";
+			// 			glue = ", ";
+			// 			if (i >= 2) {
+			// 				mans += ")";
+			// 				Console.WriteLine($"Entry {_entryId}, Assistant Manager {mans} scored {_amTally} from GW{gw}");
+			// 				_amConfig = mans;
+			// 			}
+			// 		}
+			// 	}
+			// });
 		}
 	}
 }

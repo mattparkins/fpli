@@ -17,8 +17,7 @@ namespace fpli {
 				Program.Quit("Gameweek beyond end of the season");
 			}
 
-			int i = _config.gameweek +1;
-			while (i-- > 0) {
+			for (int i = 1; i <= _config.gameweek; i++) {
 				await _fpl.LoadFixtures(i);
 			}
 		}
