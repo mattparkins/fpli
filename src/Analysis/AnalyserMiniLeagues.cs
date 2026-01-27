@@ -275,13 +275,19 @@ namespace fpli {
 				.Select(kv => new {
 					Name = _fpl.Bootstrap.GetElement(kv.Key).web_name,
 					Points = _fpl.Live.elements.Find(el => el.id == kv.Key).stats.total_points,
-					Count = kv.Value.Count
+					Count = kv.Value.Count,
+					EntryIds = kv.Value
 				})
 				.OrderByDescending(c => c.Count)
 				.ThenByDescending(c => c.Points);
 
 			foreach (var c in captains) {
-				Console.WriteLine($"{c.Count,4} {c.Name}, {c.Points}pts");
+				if (c.Count == 1) {
+					Result result = _fpl.Standings[_config.leagueId].standings.results.Find(r => r.entry == c.EntryIds[0]);
+					Console.WriteLine($"{c.Count,4} {c.Name} ({Utils.StandardiseName(result.player_name)}) {c.Points}pts");
+				} else {
+					Console.WriteLine($"{c.Count,4} {c.Name}, {c.Points}pts");
+				}
 			}
 		}
 
