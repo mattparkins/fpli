@@ -274,8 +274,8 @@ namespace fpli {
 
 			var captains = _fpl.Standings[_config.leagueId].Captaincy
 				.Select(kv => new {
-					Name = _fpl.Bootstrap.GetElement(kv.Key).web_name,
-					Points = _fpl.Live.elements.Find(el => el.id == kv.Key).stats.total_points,
+					Name = _fpl.Bootstrap.GetElement(kv.Key)?.web_name ?? "No captain",
+					Points = _fpl.Live.elements.Find(el => el.id == kv.Key)?.stats.total_points ?? 0,
 					Count = kv.Value.Count,
 					EntryIds = kv.Value
 				})
