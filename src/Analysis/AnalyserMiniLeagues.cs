@@ -171,7 +171,8 @@ namespace fpli {
 
 				_sb.Length = 0;
 				Element captain = _fpl.Bootstrap.GetElement(kv.Key);
-				_sb.Append($"{kv.Value.Count, 4} {captain.web_name}");
+				string captainName = captain != null ? captain.web_name : "No captain";
+				_sb.Append($"{kv.Value.Count, 4} {captainName}");
 
 				if (_config.incManagersInCaptaincy || kv.Value.Count == 1) {
 					string glue = " (";
