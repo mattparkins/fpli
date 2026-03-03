@@ -117,7 +117,7 @@ namespace fpli {
 					// Wildcard, Bench Boost, Free Hit - chips that don't target a specific player
 
 					if (kv.Key == "wildcard" || kv.Key == "bboost" || kv.Key == "freehit") {
-						Console.Write($"{kv.Value.Count, 4} {kv.Key}: (");
+						Console.Write($"{kv.Value.Count, 4} {kv.Key}: {_ob}");
 						string glue = "";
 						kv.Value.ForEach(entryId => {
 
@@ -129,7 +129,7 @@ namespace fpli {
 							Console.Write($"{glue}{Utils.StandardiseName(result.player_name)}");
 							glue = ", ";
 						});
-						Console.WriteLine(")");
+						Console.WriteLine(_cb);
 					} else {
 						// Triple captain or assistant manager - chips that DO target a specific elementId
 						string chipName = kv.Key == "3xc" ? "Triple Captain" : "Assistant Manager";
@@ -138,7 +138,7 @@ namespace fpli {
 						// Which list of chip targets?  3xc or assman ?
 						Dictionary<int,List<int>> chipTargets = kv.Key == "3xc" ? _fpl.Standings[_config.leagueId].ChipTarget3xc : _fpl.Standings[_config.leagueId].ChipTargetAss;
 						foreach (var (targetId, fplManagers) in chipTargets) {
-							Console.Write($"  - {fplManagers.Count} {_fpl.Bootstrap.GetElement(targetId).web_name} (");
+							Console.Write($"  - {fplManagers.Count} {_fpl.Bootstrap.GetElement(targetId).web_name} {_ob}");
 							string glue = "";
 							fplManagers.ForEach(entryId => {
 
@@ -150,7 +150,7 @@ namespace fpli {
 								Console.Write($"{glue}{Utils.StandardiseName(result.player_name)}");
 								glue = ", ";
 							});
-							Console.WriteLine(")");
+							Console.WriteLine(_cb);
 						}
 						Console.WriteLine("");
 					}
@@ -175,7 +175,7 @@ namespace fpli {
 				_sb.Append($"{kv.Value.Count, 4} {captainName}");
 
 				if (_config.incManagersInCaptaincy || kv.Value.Count == 1) {
-					string glue = " (";
+					string glue = $" {_ob}";
 
 					kv.Value.ForEach(entryId => {
 						Manager manager = _fpl.Managers[entryId];
@@ -184,7 +184,7 @@ namespace fpli {
 						glue = ", ";
 					});
 					
-					_sb.Append(")");
+					_sb.Append(_cb);
 				}
 
 				Console.WriteLine(_sb.ToString());
@@ -211,7 +211,7 @@ namespace fpli {
 			Console.WriteLine($"\nAverage hit: {Utils.SafeDivide(totalHitPoints, list.Count()):0.00} pts");	
 
 			if (largestHitPoints != 0) {	
-				Console.Write($"Biggest hit: {largestHitPoints}pts (");
+				Console.Write($"Biggest hit: {largestHitPoints}pts {_ob}");
 				
 				string glue = "";
 				foreach (var kv in list) {
@@ -223,7 +223,7 @@ namespace fpli {
 					Console.Write(glue + Utils.StandardiseName(result.player_name));
 					glue = ", ";
 				}
-				Console.WriteLine(")");
+				Console.WriteLine(_cb);
 			}
 			Console.WriteLine($"No hits:     {noHitCount} players");
 			Console.WriteLine($"Rolled:      {rollCount} players");
@@ -285,7 +285,7 @@ namespace fpli {
 			foreach (var c in captains) {
 				if (c.Count == 1) {
 					Result result = _fpl.Standings[_config.leagueId].standings.results.Find(r => r.entry == c.EntryIds[0]);
-					Console.WriteLine($"{c.Count,4} {c.Name} ({Utils.StandardiseName(result.player_name)}) {c.Points}pts");
+					Console.WriteLine($"{c.Count,4} {c.Name} {_ob}{Utils.StandardiseName(result.player_name)}{_cb} {c.Points}pts");
 				} else {
 					Console.WriteLine($"{c.Count,4} {c.Name}, {c.Points}pts");
 				}
@@ -365,44 +365,49 @@ namespace fpli {
 
 			// Lowest
 
-			Console.Write("\nWorst: ");
 			int lowestPoints = _fpl.Managers.Min(m => m.Value.GetTransfersResult());
-			Console.Write(lowestPoints+" pts");
 
-			list = _fpl.Managers.Where(m => m.Value.GetTransfersResult() == lowestPoints).ToList();
-			
-			if (list.Count == 1) {
-				list.ForEach(m => {
-					var e = _standings.GetEntry(m.Value.GetEntryId);
-					Console.Write(", "+Utils.StandardiseName(e.player_name)+"\n");
-
-					var man =_fpl.Managers[e.entry];
-					List<int> ins = new();
-					List<int> outs = new();
-
-					man.GetTransfers.Where(tr => tr.@event == _fpl.Bootstrap.GetCurrentGameweekId()).ToList().ForEach(tr => {
-						ins.Add(tr.element_in);
-						outs.Add(tr.element_out);
-					});
-
-					_expandTransfers(ins, outs, m.Value.GetTransferCost);	
-				});
+			if (lowestPoints >= 0) {
+				Console.WriteLine("\nNo negative transfers this week.");
 			} else {
-				list.ForEach(m => {
-					var e = _standings.GetEntry(m.Value.GetEntryId);
-					Console.Write("\n  "+Utils.StandardiseName(e.player_name)+"\n");
+				Console.Write("\nWorst: ");
+				Console.Write(lowestPoints+" pts");
 
-					var man =_fpl.Managers[e.entry];
-				 List<int> ins = new();
-					List<int> outs = new();
+				list = _fpl.Managers.Where(m => m.Value.GetTransfersResult() == lowestPoints).ToList();
 
-					man.GetTransfers.Where(tr => tr.@event == _fpl.Bootstrap.GetCurrentGameweekId()).ToList().ForEach(tr => {
-						ins.Add(tr.element_in);
-						outs.Add(tr.element_out);
+				if (list.Count == 1) {
+					list.ForEach(m => {
+						var e = _standings.GetEntry(m.Value.GetEntryId);
+						Console.Write(", "+Utils.StandardiseName(e.player_name)+"\n");
+
+						var man =_fpl.Managers[e.entry];
+						List<int> ins = new();
+						List<int> outs = new();
+
+						man.GetTransfers.Where(tr => tr.@event == _fpl.Bootstrap.GetCurrentGameweekId()).ToList().ForEach(tr => {
+							ins.Add(tr.element_in);
+							outs.Add(tr.element_out);
+						});
+
+						_expandTransfers(ins, outs, m.Value.GetTransferCost);
 					});
+				} else {
+					list.ForEach(m => {
+						var e = _standings.GetEntry(m.Value.GetEntryId);
+						Console.Write("\n  "+Utils.StandardiseName(e.player_name)+"\n");
 
-					_expandTransfers(ins, outs, m.Value.GetTransferCost);	
-				});
+						var man =_fpl.Managers[e.entry];
+						List<int> ins = new();
+						List<int> outs = new();
+
+						man.GetTransfers.Where(tr => tr.@event == _fpl.Bootstrap.GetCurrentGameweekId()).ToList().ForEach(tr => {
+							ins.Add(tr.element_in);
+							outs.Add(tr.element_out);
+						});
+
+						_expandTransfers(ins, outs, m.Value.GetTransferCost);
+					});
+				}
 			}
 		}
 
@@ -455,11 +460,12 @@ namespace fpli {
 			int lastPoints = 0;
 			int leagueCaptaincyPoints = 0;
 			int totalManagers = _fpl.Managers.Count;
+			var (topCount, bottomCount) = _leaderboardCounts(totalManagers);
 
 			var orderedManagers = _fpl.Managers.OrderByDescending(m => m.Value.CaptaincySeasonTally()).ToList();
 			orderedManagers.ForEach(manager => {
 				leagueCaptaincyPoints += manager.Value.CaptaincySeasonTally();
-				if (++placing <= 10) {
+				if (++placing <= topCount) {
 					var name = _standings.GetEntry(manager.Value.GetEntryId).player_name;
 					int delta = 0;
 					string captainName = "none";
@@ -485,10 +491,11 @@ namespace fpli {
 			Console.WriteLine("...");
 
 
-			// Show bottom 5 managers by captaincy tally, with correct league placing
-			placing = totalManagers - 4; // Start at 69th for 73 managers
+			// Show bottom managers by captaincy tally, with correct league placing
+			if (bottomCount == 0) return;
+			placing = totalManagers - bottomCount + 1;
 			lastPoints = 0;
-			var bottomManagers = _fpl.Managers.OrderBy(m => m.Value.CaptaincySeasonTally()).Take(5).ToList();
+			var bottomManagers = _fpl.Managers.OrderBy(m => m.Value.CaptaincySeasonTally()).Take(bottomCount).ToList();
 			bottomManagers.Reverse();
 			bottomManagers.ForEach(manager => {
 				var name = _standings.GetEntry(manager.Value.GetEntryId).player_name;
@@ -569,7 +576,7 @@ namespace fpli {
 		private void _reportBurnedTransfers() {
 			int thisWeek = _fpl.Managers.Count(m => m.Value.BurnedTransferThisWeek());
 			int totalBurned = _fpl.Managers.Sum(m => m.Value.SeasonBurnedTransfers());
-			Console.WriteLine($"\nBurned transfers: {thisWeek} (total: {totalBurned})");
+			Console.WriteLine($"\nBurned transfers: {thisWeek} {_ob}total: {totalBurned}{_cb}");
 		}
 
 
@@ -578,23 +585,24 @@ namespace fpli {
 			_writeHeader("Team Value Leaderboard", 24);
 
 			int totalManagers = _fpl.Managers.Count;
+			var (topCount, bottomCount) = _leaderboardCounts(totalManagers);
 			var orderedManagers = _fpl.Managers.OrderByDescending(m => m.Value.GetCurrentTeamValue()).ToList();
 
 			int placing = 0;
 			int lastValue = 0;
 			int leagueValue = 0;
 
-			// Top 10
+			// Top
 			orderedManagers.ForEach(manager => {
 				leagueValue += manager.Value.GetCurrentTeamValue();
 
-				if (++placing <= 10) {
+				if (++placing <= topCount) {
 					var name = _standings.GetEntry(manager.Value.GetEntryId).player_name;
 					float v = manager.Value.GetCurrentTeamValue()/10f;
 					bool equalWithLast = manager.Value.GetCurrentTeamValue() == lastValue;
 					lastValue = manager.Value.GetCurrentTeamValue();
 					var placingDisplay = equalWithLast ? " -- ": $"{Utils.ToOrdinal(placing)},";
-					Console.WriteLine($"{placingDisplay} {Utils.StandardiseName(name)} (£{v:#.0}m)");
+					Console.WriteLine($"{placingDisplay} {Utils.StandardiseName(name)} {_ob}£{v:#.0}m{_cb}");
 				}
 			});
 
@@ -604,10 +612,11 @@ namespace fpli {
 			_writeLeagueAverage($"League average: £{average.ToString("0.0")}m");
 			Console.WriteLine("...");
 
-			// Bottom 5
-			var bottomManagers = _fpl.Managers.OrderBy(m => m.Value.GetCurrentTeamValue()).Take(5).ToList();
+			// Bottom
+			if (bottomCount == 0) return;
+			var bottomManagers = _fpl.Managers.OrderBy(m => m.Value.GetCurrentTeamValue()).Take(bottomCount).ToList();
 			bottomManagers.Reverse();
-			placing = totalManagers - 4;
+			placing = totalManagers - bottomCount + 1;
 			lastValue = 0;
 			bottomManagers.ForEach(manager => {
 				var name = _standings.GetEntry(manager.Value.GetEntryId).player_name;
@@ -615,7 +624,7 @@ namespace fpli {
 				bool equalWithLast = manager.Value.GetCurrentTeamValue() == lastValue;
 				lastValue = manager.Value.GetCurrentTeamValue();
 				var placingDisplay = equalWithLast ? " -- ": $"{Utils.ToOrdinal(placing)},";
-				Console.WriteLine($"{placingDisplay} {Utils.StandardiseName(name)} (£{v:#.0}m)");
+				Console.WriteLine($"{placingDisplay} {Utils.StandardiseName(name)} {_ob}£{v:#.0}m{_cb}");
 				placing++;
 			});
 		}
@@ -646,7 +655,7 @@ namespace fpli {
 					bool equalWithLast = netPointEntry.Item1 == lastPoints;
 					lastPoints = netPointEntry.Item1;
 					var placingDisplay = equalWithLast ? " -- ": $"{Utils.ToOrdinal(placing)},";
-					Console.WriteLine($"{placingDisplay} {Utils.StandardiseName(name)}, {netPointEntry.Item1} pts (GW{netPointEntry.Item2})");
+					Console.WriteLine($"{placingDisplay} {Utils.StandardiseName(name)}, {netPointEntry.Item1} pts {_ob}GW{netPointEntry.Item2}{_cb}");
 				}
 			});
 
@@ -674,7 +683,7 @@ namespace fpli {
 				.ToList();
 
 			if (allTCResults.Count == 0) {
-				Console.WriteLine("\n(No triple captain chips played yet)");
+				Console.WriteLine($"\n{_ob}No triple captain chips played yet{_cb}");
 				return;
 			}
 
@@ -787,7 +796,7 @@ namespace fpli {
 			Console.Write("    Out: ");
 			outs.ForEach(el => {
 				int pts = _fpl.Live.elements.Find(e => e.id == el).stats.total_points;
-				Console.Write($"{glue}{_fpl.Bootstrap.GetElement(el).web_name}({pts})");
+				Console.Write($"{glue}{_fpl.Bootstrap.GetElement(el).web_name}{_ob}{pts}{_cb}");
 				glue = ", ";
 			});
 
@@ -800,7 +809,7 @@ namespace fpli {
 			glue = "";
 			ins.ForEach(el => {
 				int pts = _fpl.Live.elements.Find(e => e.id == el).stats.total_points;
-				Console.Write($"{glue}{_fpl.Bootstrap.GetElement(el).web_name}({pts})");
+				Console.Write($"{glue}{_fpl.Bootstrap.GetElement(el).web_name}{_ob}{pts}{_cb}");
 				glue = ", ";
 			});
 			Console.WriteLine(".");
@@ -813,16 +822,25 @@ namespace fpli {
 			Console.Write("    ");
 			bench.ForEach(el => {
 				int pts = _fpl.Live.elements.Find(e => e.id == el).stats.total_points;
-				Console.Write($"{glue}{_fpl.Bootstrap.GetElement(el).web_name}({pts})");
+				Console.Write($"{glue}{_fpl.Bootstrap.GetElement(el).web_name}{_ob}{pts}{_cb}");
 				glue = ", ";
 			});
 			Console.WriteLine(".");
 		}
 
 
+		// Calculate top/bottom counts for leaderboards to avoid overlap in small leagues
+		(int top, int bottom) _leaderboardCounts(int total) {
+			int bottom = Math.Min(5, total / 2);
+			int top = Math.Min(10, total - bottom);
+			return (top, bottom);
+		}
+
 		// Social media formatting helpers
 
 		bool _isSocialMediaFormat => _config.facebookFormat || _config.whatsappFormat;
+		string _ob => _isSocialMediaFormat ? "[" : "(";
+		string _cb => _isSocialMediaFormat ? "]" : ")";
 
 		void _writeHeader(string title, int underlineLength = 0) {
 			if (_config.facebookFormat) {
