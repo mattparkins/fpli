@@ -304,9 +304,11 @@ namespace fpli {
 			int mostPoints = _fpl.Managers.Max(m => m.Value.GetBenchPoints);
 			Console.Write(mostPoints+" pts");
 
+			var glue = ", ";
 			_fpl.Managers.Where(m => m.Value.GetBenchPoints == mostPoints).ToList().ForEach(m => {
 				var e = _standings.GetEntry(m.Value.GetEntryId);
-				Console.Write(", "+Utils.StandardiseName(e.player_name)+"\n");
+				Console.Write(glue+Utils.StandardiseName(e.player_name)+"\n");
+				glue = "  + ";
 
 				var man =_fpl.Managers[e.entry];
 				List<int> bench = new();
@@ -315,7 +317,7 @@ namespace fpli {
 					bench.Add(man.GetPicks.picks[i].element);
 				};
 
-				_expandBench(bench);	
+				_expandBench(bench);
 
 			});
 		}
