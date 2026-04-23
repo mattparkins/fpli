@@ -462,6 +462,7 @@ namespace fpli {
 			int totalManagers = _fpl.Managers.Count;
 			var (topCount, bottomCount) = _leaderboardCounts(totalManagers);
 
+			int currentGW = _fpl.Bootstrap.GetCurrentGameweekId();
 			var orderedManagers = _fpl.Managers.OrderByDescending(m => m.Value.CaptaincySeasonTally()).ToList();
 			orderedManagers.ForEach(manager => {
 				leagueCaptaincyPoints += manager.Value.CaptaincySeasonTally();
@@ -472,8 +473,7 @@ namespace fpli {
 					int capId = manager.Value.GetCaptain;
 					if (capId > 0) {
 						FPLData.Instance.Elements.TryGetValue(capId, out ElementSummary el);
-						ElementHistory eh = el.history.LastOrDefault();
-						delta = (eh?.total_points ?? 0) * manager.Value.GetCaptainMultiplier;
+						delta = el.history.Where(h => h.round == currentGW).Sum(h => h.total_points ?? 0) * manager.Value.GetCaptainMultiplier;
 						captainName = _fpl.Bootstrap.GetElement(capId).web_name;
 					}
 					var ds = _formatPointDelta(delta, $" {captainName}");
@@ -504,8 +504,7 @@ namespace fpli {
 				int capId = manager.Value.GetCaptain;
 				if (capId > 0) {
 					FPLData.Instance.Elements.TryGetValue(capId, out ElementSummary el);
-					ElementHistory eh = el.history.LastOrDefault();
-					delta = (eh?.total_points ?? 0) * manager.Value.GetCaptainMultiplier;
+					delta = el.history.Where(h => h.round == currentGW).Sum(h => h.total_points ?? 0) * manager.Value.GetCaptainMultiplier;
 					captainName = _fpl.Bootstrap.GetElement(capId).web_name;
 				}
 				var ds = _formatPointDelta(delta, $" {captainName}");

@@ -180,6 +180,9 @@ namespace fpli {
 			int burned = 0;
 			int freeTransfers = 1;  // Start of season
 
+			// 2025/26 AFCON top-up: everyone was given 5 FTs at GW16.
+			int season = FPLData.Instance.Bootstrap.events.FirstOrDefault()?.deadline_time.Year ?? 0;
+
 			for (int i = 0; i < _managerHistory.current.Count; i++) {
 				var gwHistory = _managerHistory.current[i];
 				var gwPicks = _picksHistory[i];
@@ -187,8 +190,7 @@ namespace fpli {
 				int transfersMade = gwHistory.event_transfers;
 				string chip = gwPicks.active_chip;
 
-				// GW16 2024/25: everyone topped up to 5 FTs
-				if (gameweek == 16) {
+				if (season == 2025 && gameweek == 16) {
 					freeTransfers = 5;
 				}
 
@@ -241,23 +243,25 @@ namespace fpli {
 			// Find the value of each 3x Chip. Managers can now have multiple TC chips per season.
 			_managerHistory.chips.FindAll(ch => ch.name == "3xc").ForEach(ch => {
 
-				int tally = 0;
 				int gw = ch.@event;
+				List<Pick> picks = _picksHistory[gw - 1].picks;
 
-				Console.WriteLine($"Manager history for {_entryId} 3xc played in {gw}, pick history count {_picksHistory.Count}");
+				// FPL auto-transfers the 3x multiplier to the VC if the captain doesn't play.
+				// Prefer whichever pick actually received the multiplier; fall back to the
+				// designated captain if neither played (TC was wasted for 0 pts).
+				Pick scoringPick = picks.FirstOrDefault(p => p.is_captain && p.multiplier > 0)
+					?? picks.FirstOrDefault(p => p.is_vice_captain && p.multiplier > 0)
+					?? picks.FirstOrDefault(p => p.is_captain);
+				if (scoringPick == null) return;
 
-				_picksHistory[gw - 1].picks.ForEach(p => {
-					if (p.is_captain) {
-						int elId = p.element;
+				int elId = scoringPick.element;
+				int tally = 0;
+				FPLData.Instance.Elements.TryGetValue(elId, out ElementSummary el);
+				el.history.FindAll(h => h.round == gw)?.ForEach(h => tally += h.total_points ?? 0);
 
-						FPLData.Instance.Elements.TryGetValue(elId, out ElementSummary el);
-						el.history.FindAll(h => h.round == gw)?.ForEach(h => tally += h.total_points ?? 0);
-
-						string name = FPLData.Instance.Bootstrap.elements.Find(e => e.id == elId).web_name;
-						string description = $"(GW{gw} {name} {tally * 3} pts)";
-						_x3Results.Add((tally, gw, description));
-					}
-				});
+				string name = FPLData.Instance.Bootstrap.elements.Find(e => e.id == elId).web_name;
+				string description = $"(GW{gw} {name} {tally * 3} pts)";
+				_x3Results.Add((tally, gw, description));
 			});
 			
 
