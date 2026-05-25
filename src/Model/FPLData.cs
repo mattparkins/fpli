@@ -72,9 +72,9 @@ namespace fpli {
 
 				foreach (Element element in Bootstrap.elements) {
 					ElementSummary elementSummary = await Fetcher.FetchAndDeserialise<ElementSummary>(
-						$"{_cachePath}element_summary_{element.id}.json", 
-						$"{_api}element-summary/{element.id}/", 
-						Utils.DaysAsSeconds(1));
+						$"{_cachePath}element_summary_{element.id}.json",
+						$"{_api}element-summary/{element.id}/",
+						Utils.HoursAsSeconds(1));
 					Elements[element.id] = elementSummary;
 				}
 			}
