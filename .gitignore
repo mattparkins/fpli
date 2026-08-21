@@ -402,3 +402,6 @@ FodyWeavers.xsd
 .cache
 .DS_Store
 data/.DS_Store
+
+# Local Claude Code settings
+.claude/
