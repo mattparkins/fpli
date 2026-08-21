@@ -21,6 +21,7 @@ namespace fpli {
         public bool incManagersInCaptaincy  { get; private set; } = false;  // include managers in captaincy summary
         public bool facebookFormat          { get; private set; } = false;  // format output for Facebook posts
         public bool whatsappFormat          { get; private set; } = false;  // format output for WhatsApp
+        public string trackedPlayer         { get; private set; } = "Haaland";  // player whose squad ownership to track (Haaland vs No Haaland)
 
         // Fixture analysis options
         public int gameweek                 { get; private set; } = 0;      // Which gameweek to target
@@ -46,6 +47,7 @@ namespace fpli {
             Console.WriteLine(" --incManagersInCaptaincy                include manager names in captaincy summary.");
             Console.WriteLine(" --facebook                              format output for Facebook posts (bold headers, no emoji triggers)");
             Console.WriteLine(" --whatsapp                              format output for WhatsApp (*bold* headers)");
+            Console.WriteLine(" --trackedPlayer <web_name>              track squad ownership of this player (default Haaland)");
 
             Console.WriteLine("\nFixture analysis options");
 			Console.WriteLine(" --previousPicks <string>...             picks so far, one per gameweek ");
@@ -72,6 +74,7 @@ namespace fpli {
                 incManagersInCaptaincy = _retrieveOptionExists(args, "--incManagersInCaptaincy");
                 facebookFormat = _retrieveOptionExists(args, "--facebook");
                 whatsappFormat = _retrieveOptionExists(args, "--whatsapp");
+                trackedPlayer = _retrieveOption(args, "--trackedPlayer", trackedPlayer);
             }
 
             // Retrieve further settings

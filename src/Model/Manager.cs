@@ -40,38 +40,59 @@ namespace fpli {
 
 		public async Task Fetch(string cachePath, string api, int GW) {
 			_gw = GW;
-			_picks = await Fetcher.FetchAndDeserialise<Picks>($"{cachePath}picks_{_entryId}_GW{GW}.json", $"{api}entry/{_entryId}/event/{GW}/picks/", Utils.DaysAsSeconds(0.25f));
+			_picks = await Fetcher.FetchAndDeserialise<Picks>($"{cachePath}picks_{_entryId}_GW{GW}.json", $"{api}entry/{_entryId}/event/{GW}/picks/", Utils.DaysAsSeconds(0.25f), tolerateNotFound: true);
 			_transfers = await Fetcher.FetchAndDeserialise<List<Transfer>>($"{cachePath}transfers_{_entryId}_GW{GW}.json", $"{api}entry/{_entryId}/transfers/", Utils.DaysAsSeconds(300));
 			_managerHistory = await Fetcher.FetchAndDeserialise<ManagerHistory>($"{cachePath}entry_{_entryId}_history_GW{GW}.json", $"{api}entry/{_entryId}/history/", Utils.DaysAsSeconds(0.25f));
 
 			// pull out any shortcut data
 
 			_captain = 0;
-			_picks.picks.ForEach(p => {
-				if (p.is_captain && p.multiplier >= 2) {
-					_captain = p.element;
-					_captainMultiplier = p.multiplier;
-				}
-			});
-
-			if (_captain == 0) {
+			if (_picks != null) {
 				_picks.picks.ForEach(p => {
-					if (p.is_vice_captain && p.multiplier >= 2) {
+					if (p.is_captain && p.multiplier >= 2) {
 						_captain = p.element;
 						_captainMultiplier = p.multiplier;
 					}
 				});
+
+				if (_captain == 0) {
+					_picks.picks.ForEach(p => {
+						if (p.is_vice_captain && p.multiplier >= 2) {
+							_captain = p.element;
+							_captainMultiplier = p.multiplier;
+						}
+					});
+				}
 			}
 
 			_picksHistory = new List<Picks>();
 			for (int gw = 1; gw <= GW; gw++) {
 				int cacheExpiry = gw == GW ? Utils.DaysAsSeconds(0.25f) : Utils.DaysAsSeconds(300);
-				_picksHistory.Add(await Fetcher.FetchAndDeserialise<Picks>($"{cachePath}picks_{_entryId}_GW{gw}.json", $"{api}entry/{_entryId}/event/{gw}/picks/", cacheExpiry));
+				_picksHistory.Add(await Fetcher.FetchAndDeserialise<Picks>($"{cachePath}picks_{_entryId}_GW{gw}.json", $"{api}entry/{_entryId}/event/{gw}/picks/", cacheExpiry, tolerateNotFound: true));
 			}
 
 			// Calculate chips tallies
 			CalculateChips();
 
+		}
+
+		// Returns the manager's picks for a given gameweek, or null when there are
+		// none (e.g. a GW before they joined, whose picks endpoint returned 404).
+		public Picks GetPicksForGameweek(int gameweek) {
+			if (gameweek >= 1 && gameweek <= _picksHistory.Count) {
+				return _picksHistory[gameweek - 1];
+			}
+			return null;
+		}
+
+		// Squad ownership (bench included) of an element in a given gameweek.
+		// null when there are no picks for that gameweek.
+		public bool? OwnsElement(int elementId, int gameweek) {
+			Picks picks = GetPicksForGameweek(gameweek);
+			if (picks == null) {
+				return null;
+			}
+			return picks.picks.Any(p => p.element == elementId);
 		}
 
 		public int GetTransfersResult() {
@@ -98,6 +119,12 @@ namespace fpli {
 
 				// Iterate through _picksHistory and find the isCaptain pick, if the multiplier is zero then it was a VC
 				_picksHistory.ForEach(gw => {
+
+					// A pending manager may have no picks for an earlier GW (index kept null).
+					if (gw == null) {
+						gameweekNumber++;
+						return;
+					}
 
 					Pick captain = null;
 
@@ -185,7 +212,11 @@ namespace fpli {
 
 			for (int i = 0; i < _managerHistory.current.Count; i++) {
 				var gwHistory = _managerHistory.current[i];
-				var gwPicks = _picksHistory[i];
+				// current[] holds one row per week the entry has existed; index picks by the
+				// row's actual gameweek (not i) so an entry that started mid-season stays
+				// aligned. Skip weeks with no picks data.
+				var gwPicks = GetPicksForGameweek(gwHistory.@event);
+				if (gwPicks == null) continue;
 				int gameweek = gwHistory.@event;
 				int transfersMade = gwHistory.event_transfers;
 				string chip = gwPicks.active_chip;
@@ -244,6 +275,7 @@ namespace fpli {
 			_managerHistory.chips.FindAll(ch => ch.name == "3xc").ForEach(ch => {
 
 				int gw = ch.@event;
+				if (gw < 1 || gw > _picksHistory.Count || _picksHistory[gw - 1] == null) return;
 				List<Pick> picks = _picksHistory[gw - 1].picks;
 
 				// FPL auto-transfers the 3x multiplier to the VC if the captain doesn't play.

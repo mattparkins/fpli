@@ -82,10 +82,21 @@ namespace fpli {
 
 		}
 
-		public async Task LoadManager(int entryId) {
+		public async Task<bool> LoadManager(int entryId) {
 			Manager manager = new Manager(entryId);
 			await manager.Fetch(_cachePath, _api, Bootstrap.GetCurrentGameweekId());
+
+			// A pending manager (or one who joined mid-season) may have no picks for
+			// the current gameweek yet; the picks endpoint 404s and Fetch yields null.
+			// Skip them so downstream sections never dereference a null manager. Warn
+			// on stderr so stdout (copied into WhatsApp/Facebook) stays clean.
+			if (manager.GetPicks == null) {
+				Console.Error.WriteLine($"warning: no GW{Bootstrap.GetCurrentGameweekId()} picks for entry {entryId} - skipped");
+				return false;
+			}
+
 			Managers[entryId] = manager;
+			return true;
 		}
 
 		
@@ -97,20 +108,87 @@ namespace fpli {
 			int finalPage = ((maxManagers -1) / 50) +1;
 			string standingsFilename = $"standings_{leagueId}_{GWStatusString}";
 
+			// After the GW1 deadline (and until FPL processes the league overnight),
+			// managers who have joined a mini league sit in the standings API's
+			// new_entries block rather than in standings.results. Fetch that block first
+			// so those pending managers can be included. It is transient (empties once
+			// the league is processed), so cache it for only 1 hour.
+			List<NewEntry> pending = new List<NewEntry>();
+			for (int page = 1; ; page++) {
+				LeagueStandings newEntriesPage = await Fetcher.FetchAndDeserialise<LeagueStandings>(
+					$"{_cachePath}{standingsFilename}_new_entries_{page}.json",
+					$"{_api}leagues-classic/{leagueId}/standings/?page_new_entries={page}&phase=1",
+					Utils.HoursAsSeconds(1));
+
+				List<NewEntry> pageResults = newEntriesPage?.new_entries?.results;
+				int added = pageResults?.Count ?? 0;
+				if (added > 0) {
+					pending.AddRange(pageResults);
+				}
+
+				// Stop at the last page, once we hit the cap, or if a page comes back empty
+				// (guards a malformed has_next=true with no results from looping forever).
+				bool hasNextNewEntries = newEntriesPage?.new_entries?.has_next ?? false;
+				if (!hasNextNewEntries || pending.Count >= maxManagers || added == 0) {
+					break;
+				}
+			}
+
+			// While managers are pending, standings.results is an incomplete snapshot.
+			// If it were written under the normal 300-day cache name, tomorrow's run
+			// (after FPL has processed the league, when new_entries is empty again)
+			// would serve the stale, incomplete standings and the pending managers would
+			// vanish. So while the league is in flux, cache the standings under a distinct
+			// _pending_ name with a 1-hour TTL instead of 300 days.
+			bool leagueInFlux = pending.Count > 0;
+
 			for (int page = 1; page <= finalPage; page++) {
 
+				string standingsCacheFile = leagueInFlux
+					? $"{_cachePath}{standingsFilename}_pending_{page}.json"
+					: $"{_cachePath}{standingsFilename}_{page}.json";
+				int standingsTtl = leagueInFlux ? Utils.HoursAsSeconds(1) : Utils.DaysAsSeconds(300);
+
 				LeagueStandings leagueStandings = await Fetcher.FetchAndDeserialise<LeagueStandings>(
-					$"{_cachePath}{standingsFilename}_{page}.json", 
-					$"{_api}leagues-classic/{leagueId}/standings/?page_standings={page}&phase=1", 
-					Utils.DaysAsSeconds(300));
+					standingsCacheFile,
+					$"{_api}leagues-classic/{leagueId}/standings/?page_standings={page}&phase=1",
+					standingsTtl);
 
 				if (page == 1) {
 					Standings[leagueId] = leagueStandings;
 				} else {
 					Standings[leagueId].standings.results.AddRange(leagueStandings.standings.results);
-				}					
+				}
+
+				// No more standings pages? Stop early.
+				if (!(leagueStandings.standings?.has_next ?? false)) {
+					break;
+				}
 			}
-		} 
+
+			// Store the full pending list, then merge any pending manager not already
+			// present into standings.results (up to maxManagers). Merged rows are flagged
+			// IsPending and flow through GetEntry, captaincy, chip usage and every
+			// analyser section unchanged.
+			LeagueStandings standings = Standings[leagueId];
+			standings.new_entries ??= new NewEntries();
+			standings.new_entries.results = pending;
+
+			foreach (NewEntry e in pending) {
+				if (standings.standings.results.Count >= maxManagers) {
+					break;
+				}
+				if (standings.standings.results.Any(r => r.entry == e.entry)) {
+					continue;
+				}
+				standings.standings.results.Add(new Result {
+					entry = e.entry,
+					entry_name = e.entry_name,
+					player_name = e.PlayerName,
+					IsPending = true
+				});
+			}
+		}
 
 
 		public async Task LoadFixtures(int gw) {

@@ -28,8 +28,16 @@ namespace fpli {
 		private void LoadSeason(string path, int season) {
 			string fullpath = path + season;
 
+			// A season folder without a bootstrap-static.json is the current, in-progress
+			// season: SyncCurrentSeason creates the directory but does not populate historic
+			// data there. Skip it - the current season's data comes from the live bootstrap.
+			string bootstrapFile = fullpath + "/bootstrap-static.json";
+			if (!File.Exists(bootstrapFile)) {
+				return;
+			}
+
 			// Load bootstrap
-			Bootstrap[season] = Utils.DeserializeFromFile<Bootstrap>(fullpath+"/bootstrap-static.json");
+			Bootstrap[season] = Utils.DeserializeFromFile<Bootstrap>(bootstrapFile);
 
 			// Load fixtures
 			Fixtures[season] = new Dictionary<int, List<Fixture>>();

@@ -177,7 +177,7 @@ namespace fpli {
         public int points { get; set; }
         public int position { get; set; }
         public string short_name { get; set; }
-        public int strength { get; set; }
+        public int? strength { get; set; }   // null at start of season, before ratings are set
         public string team_division { get; set; }
         public bool unavailable { get; set; }
         public int win { get; set; }
@@ -193,7 +193,7 @@ namespace fpli {
             if (prependHeader) {
                 file.WriteLine("name,short_name,strength,strength_overall_home,strength_overall_away,strength_attack_home,strength_attack_away,strength_defence_home,strength_defence_away");
             }
-            file.WriteLine($"{name},{short_name},{strength},{strength_overall_home},{strength_overall_away},{strength_attack_home},{strength_attack_away},{strength_defence_home},{strength_defence_away}");
+            file.WriteLine($"{name},{short_name},{strength ?? 0},{strength_overall_home},{strength_overall_away},{strength_attack_home},{strength_attack_away},{strength_defence_home},{strength_defence_away}");
         }
 	}
 

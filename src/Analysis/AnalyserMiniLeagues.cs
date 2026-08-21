@@ -23,25 +23,23 @@ namespace fpli {
 		public override async Task PreFetch()
 		{
 
-			// Load the league
+			// Load the league (standings.results now includes any managers still
+			// pending addition to the league by FPL - see FPLData.LoadLeague).
 			await _fpl.LoadLeague(_config.leagueId, _config.maxManagers);
 
-			// Load each manager in the league
+			// Load each manager in the league, dropping any whose current-GW picks are
+			// unavailable (e.g. a pending manager with no team yet) so every remaining
+			// standings row has a fully-loaded manager.
+			List<int> unloaded = new List<int>();
 			foreach (var standingEntry in _fpl.Standings[_config.leagueId].standings.results)
 			{
-				await _fpl.LoadManager(standingEntry.entry);
+				if (!await _fpl.LoadManager(standingEntry.entry))
+				{
+					unloaded.Add(standingEntry.entry);
+				}
 			}
 
-
-			//Load each manager in the new entry section
-			// if (_fpl.Standings[_config.leagueId].new_entries != null)
-			// {
-			// 	foreach (var entry in _fpl.Standings[_config.leagueId].new_entries.results)
-			// 	{
-			// 		int entryId = int.Parse(entry);
-			// 		await _fpl.LoadManager(entryId);
-			// 	}
-			// }
+			_fpl.Standings[_config.leagueId].standings.results.RemoveAll(r => unloaded.Contains(r.entry));
 		}
 
 
@@ -52,14 +50,33 @@ namespace fpli {
 			if (_fpl.Bootstrap.GetCurrentGameweekId() <= 0) {
 				Program.Quit("Cannot execute Mini-League Analysis if GW is <= 0");
 			}
+
+			// Managers without current-GW picks are skipped during load (e.g. the app is
+			// run before the deadline), which can leave nothing to analyse; several
+			// sections assume at least one manager, so exit cleanly rather than throwing.
+			if (_fpl.Managers.Count == 0) {
+				Program.Quit($"No managers with GW{_fpl.Bootstrap.GetCurrentGameweekId()} picks could be loaded - has the gameweek deadline passed?");
+			}
 		}
 
 
 		public override void Analyse() {
 			_standings = _fpl.Standings[_config.leagueId];
 
+			// Flag any managers still waiting to be added to the league by FPL that we
+			// merged into the standings. No trailing blank line - _reportChipUsage
+			// leads with one, so spacing matches the neighbouring sections.
+			int pendingCount = _standings.PendingCount;
+			if (pendingCount > 0) {
+				string clause = pendingCount == 1
+					? "manager still waiting to be added to the league by FPL has"
+					: "managers still waiting to be added to the league by FPL have";
+				_writeLeagueAverage($"Note: {pendingCount} {clause} been included");
+			}
+
 			_reportChipUsage();
 			_reportCaptaincy();
+			_reportTrackedPlayer();
 			_reportHits();
 			_reportBurnedTransfers();
 
@@ -191,6 +208,115 @@ namespace fpli {
 			}
 		}	
 
+		// "Haaland vs No Haaland" - squad ownership of a tracked player across the
+		// league, with week-on-week movement. Resolved by web_name so it survives the
+		// player's element id changing every season.
+		void _reportTrackedPlayer() {
+			// Resolve by exact web_name first (e.g. "Haaland"), then fall back to an exact
+			// surname (second_name) match (e.g. "Salah" -> "M.Salah"), preferring the most
+			// expensive player when several share a surname.
+			Element element = _fpl.Bootstrap.elements
+				.FirstOrDefault(e => string.Equals(e.web_name, _config.trackedPlayer, StringComparison.OrdinalIgnoreCase));
+
+			if (element == null) {
+				element = _fpl.Bootstrap.elements
+					.Where(e => string.Equals(e.second_name, _config.trackedPlayer, StringComparison.OrdinalIgnoreCase))
+					.OrderByDescending(e => e.now_cost)
+					.FirstOrDefault();
+			}
+
+			string label = element?.web_name ?? _config.trackedPlayer;
+
+			_writeBlankLine();
+			_writeHeader($"{label} vs No {label}");
+			_writeBlankLine();
+
+			if (element == null) {
+				Console.WriteLine($"{_config.trackedPlayer} not found in the FPL player list (use the player's FPL web name, e.g. M.Salah)");
+				return;
+			}
+
+			int id = element.id;
+			int gw = _fpl.Bootstrap.GetCurrentGameweekId();
+			int prevGw = gw - 1;
+
+			var results = _standings.standings.results;
+			int membership = results.Count;
+
+			int owners = 0, nonOwners = 0;
+			int ownersPrev = 0, nonOwnersPrev = 0, prevDataCount = 0;
+			int ownersNowLfl = 0, nonOwnersNowLfl = 0;   // current ownership among managers who also have previous-week data
+			List<string> movedIn = new List<string>();
+			List<string> movedOut = new List<string>();
+
+			foreach (Result r in results) {
+				Manager manager = _fpl.Managers[r.entry];
+				bool ownsNow = manager.OwnsElement(id, gw) ?? false;
+				if (ownsNow) { owners++; } else { nonOwners++; }
+
+				if (gw >= 2) {
+					bool? ownedPrev = manager.OwnsElement(id, prevGw);
+					if (ownedPrev.HasValue) {
+						prevDataCount++;
+						if (ownedPrev.Value) { ownersPrev++; } else { nonOwnersPrev++; }
+						if (ownsNow) { ownersNowLfl++; } else { nonOwnersNowLfl++; }
+
+						if (ownsNow && !ownedPrev.Value) {
+							movedIn.Add(Utils.StandardiseName(r.player_name));
+						} else if (!ownsNow && ownedPrev.Value) {
+							movedOut.Add(Utils.StandardiseName(r.player_name));
+						}
+					}
+				}
+			}
+
+			double ownersPct = Utils.SafeDivide(owners * 100.0, membership);
+			double nonOwnersPct = Utils.SafeDivide(nonOwners * 100.0, membership);
+
+			bool hasPrev = gw >= 2 && prevDataCount > 0;
+
+			if (hasPrev) {
+				// Deltas are like-for-like over the population that has previous-week data,
+				// so deltaOwners == in - out; a manager who only joined this week can't
+				// inflate the change without appearing in the in/out lists.
+				double ownersPctPrev = Utils.SafeDivide(ownersPrev * 100.0, prevDataCount);
+				double nonOwnersPctPrev = Utils.SafeDivide(nonOwnersPrev * 100.0, prevDataCount);
+				double ownersPctNow = Utils.SafeDivide(ownersNowLfl * 100.0, prevDataCount);
+				double nonOwnersPctNow = Utils.SafeDivide(nonOwnersNowLfl * 100.0, prevDataCount);
+
+				string ownersDelta = _formatTrackedDelta(ownersNowLfl - ownersPrev, ownersPctNow - ownersPctPrev, prevGw);
+				string nonOwnersDelta = _formatTrackedDelta(nonOwnersNowLfl - nonOwnersPrev, nonOwnersPctNow - nonOwnersPctPrev, prevGw);
+
+				Console.WriteLine($"{owners, 4} {label} {_ob}{ownersPct:0.0}%{_cb} {ownersDelta}");
+				Console.WriteLine($"{nonOwners, 4} No {label} {_ob}{nonOwnersPct:0.0}%{_cb} {nonOwnersDelta}");
+				_writeTrackedMovers("in", movedIn);
+				_writeTrackedMovers("out", movedOut);
+			} else {
+				Console.WriteLine($"{owners, 4} {label} {_ob}{ownersPct:0.0}%{_cb}");
+				Console.WriteLine($"{nonOwners, 4} No {label} {_ob}{nonOwnersPct:0.0}%{_cb}");
+			}
+		}
+
+		// One movers line: "   5 in (Matt Smith, Joe Bloggs)". Names appended only
+		// when incManagersInCaptaincy or there is exactly one, mirroring captaincy.
+		void _writeTrackedMovers(string label, List<string> names) {
+			int count = names.Count;
+			string line = $"{count, 4} {label}";
+			if (count > 0 && (_config.incManagersInCaptaincy || count == 1)) {
+				line += $" {_ob}{string.Join(", ", names)}{_cb}";
+			}
+			Console.WriteLine(line);
+		}
+
+		// Delta bracket for the tracked-player counts: signed count and signed
+		// percentage-point change vs the previous gameweek, e.g. (+5, +3.3% vs GW3).
+		string _formatTrackedDelta(int delta, double pctDelta, int prevGw) {
+			string inner = (delta == 0 && Math.Abs(pctDelta) < 0.05)
+				? $"no change vs GW{prevGw}"
+				: $"{delta:+0;-0;0}, {pctDelta:+0.0;-0.0;0.0}% vs GW{prevGw}";
+			return $"{_ob}{inner}{_cb}";
+		}
+
 		void _reportHits() {
 
 			var list = _fpl.Managers.OrderByDescending(m => m.Value.GetTransferCost);
@@ -279,8 +405,8 @@ namespace fpli {
 					Count = kv.Value.Count,
 					EntryIds = kv.Value
 				})
-				.OrderByDescending(c => c.Count)
-				.ThenByDescending(c => c.Points);
+				.OrderByDescending(c => c.Points)
+				.ThenByDescending(c => c.Count);
 
 			foreach (var c in captains) {
 				if (c.Count == 1) {

@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace fpli {
     public class League
     {
@@ -18,9 +20,21 @@ namespace fpli {
 
     public class NewEntries
     {
-        // public bool has_next { get; set; }
-        // public int page { get; set; }
-        // public List<string> results { get; set; }
+        public bool has_next { get; set; }
+        public int page { get; set; }
+        public List<NewEntry> results { get; set; } = new List<NewEntry>();
+    }
+
+    public class NewEntry
+    {
+        public int entry { get; set; }
+        public string entry_name { get; set; }
+        public DateTime? joined_time { get; set; }
+        public string player_first_name { get; set; }
+        public string player_last_name { get; set; }
+
+        // The standings API has no player_name for new entries; compose it.
+        public string PlayerName => $"{player_first_name} {player_last_name}".Trim();
     }
 
     public class Result
@@ -34,6 +48,10 @@ namespace fpli {
         public int total { get; set; }
         public int entry { get; set; }
         public string entry_name { get; set; }
+
+        // True for rows synthesized from new_entries (manager still waiting to be
+        // added to the league by FPL). Not part of the API payload.
+        [JsonIgnore] public bool IsPending { get; set; }
     }
 
     public class Standings
@@ -63,6 +81,10 @@ namespace fpli {
         public Result GetEntry(int entryId) {
             return standings.results.Find(r => r.entry == entryId);
         }
+
+        // Count of managers merged in from new_entries who are still pending
+        // addition to the league by FPL.
+        public int PendingCount => standings?.results?.Count(r => r.IsPending) ?? 0;
 
         private void _calculateCaptaincy(FPLData fpl) {
             standings.results.ForEach(r => {

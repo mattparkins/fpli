@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text.Json;
 
 namespace fpli {
@@ -8,12 +9,24 @@ namespace fpli {
         
         public static float Callrate { get; set; } = 1f;   // Maximum calls per second
 
-		public static async Task<T> FetchAndDeserialise<T>(string filename, string endpoint, int cacheExpiryInSeconds) {
-			string text = await Fetcher.Fetch(filename, endpoint, cacheExpiryInSeconds);
-			return JsonSerializer.Deserialize<T>(text, Utils.JSONConfig);
+		public static async Task<T> FetchAndDeserialise<T>(string filename, string endpoint, int cacheExpiryInSeconds, bool tolerateNotFound = false) {
+			string text = await Fetcher.Fetch(filename, endpoint, cacheExpiryInSeconds, tolerateNotFound);
+			if (text == null) {
+				return default;
+			}
+
+			try {
+				return JsonSerializer.Deserialize<T>(text, Utils.JSONConfig);
+			} catch (JsonException e) {
+				// A schema change (e.g. a field that used to be an int arriving as null)
+				// should fail with a readable message, not an unhandled exception.
+				Console.WriteLine($"error: could not parse {filename}: {e.Message}");
+				Environment.Exit(-1);
+				return default;  // Unreachable but required for compiler
+			}
 		}
 
-		public static async Task<string> Fetch(string filename, string uri, int cacheExpiryInSeconds) {
+		public static async Task<string> Fetch(string filename, string uri, int cacheExpiryInSeconds, bool tolerateNotFound = false) {
 
             // Convert uri to a filename
             string json = "";
@@ -64,6 +77,14 @@ namespace fpli {
             try {
 
                 HttpResponseMessage response = await _client.SendAsync(request);
+
+                // A pending manager (or a GW before they started) has no picks yet;
+                // the endpoint returns 404. Callers can opt to tolerate that and get
+                // a null back rather than exiting. Do NOT cache the 404.
+                if (tolerateNotFound && response.StatusCode == HttpStatusCode.NotFound) {
+                    return null;
+                }
+
                 response.EnsureSuccessStatusCode();
                 body = await response.Content.ReadAsStringAsync();
                 await File.WriteAllTextAsync(filename, body);

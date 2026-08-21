@@ -25,6 +25,10 @@ dotnet run --leagueId 314 --maxManagers 100
 
 The leagueId can be found by looking in the URL of a league table on the officialFPL website. MaxManagers defaults to 50. The engine will download two files for each manager - their team selection and transfer history.
 
+Optional flags: `--trackedPlayer <web_name>` adds a "player vs No player" squad-ownership section, tracking how many managers own a given player and how that changed since last gameweek (defaults to Haaland, resolved by name so it works across seasons). The name is matched against the FPL web name (e.g. `Haaland`, `M.Salah`), falling back to an exact surname match, preferring the most expensive player if several share it. `--incManagersInCaptaincy` lists manager names in the captaincy and ownership sections, and `--facebook` / `--whatsapp` format the output for those platforms.
+
+Managers who have joined the league but are still waiting to be added by FPL (they sit in the standings API's `new_entries` block after the GW1 deadline, until FPL processes the league overnight) are now included automatically, so the analysis can be run straight after the deadline.
+
 ### Fixture Analysis
 
 The Fixture Analysis Engine is a search engine (like chess) for predictor games to maximise the chance of picking a winning team. Very much an experimental work in progress. It looks at previous form & fixtures to form an ELO rating for home/away of each team and then coverts that rating to a Win Expectancy and then tries to find the maximum Win Expectancy after playing out the selected number of gameweeks. The only constraint is that a team cannot be selected twice. The usage is:

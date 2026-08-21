@@ -15,7 +15,7 @@ namespace fpli {
         public int total_points { get; set; }
         public int? rank { get; set; }
         public int? rank_sort { get; set; }
-        public int overall_rank { get; set; }
+        public int? overall_rank { get; set; }   // null at GW1 before overall ranks are computed
         public int bank { get; set; }
         public int value { get; set; }
         public int event_transfers { get; set; }
