@@ -1,0 +1,217 @@
+FPLI Code Review - Bugs, Issues and Warnings
+=============================================
+Review Date: 2026-01-11
+
+This review focuses on bugs, issues, and warnings - not feature suggestions or optimizations.
+
+
+## CRITICAL ISSUES (Potential Runtime Crashes)
+
+### 1. Null Analyser in Engine.cs (Line 17)
+File: src/Engine.cs:17
+Issue: Analyser.Factory() can return null for unsupported intents, but Engine.Execute()
+       doesn't check for null before calling methods on the analyser.
+
+       Analyser analyser = Analyser.Factory(config.intent, _fpl, _config);
+       // No null check here
+       await analyser.PreFetch();  // NullReferenceException if factory returned null
+
+Impact: If DisplayHelp or DisplayVersion intents somehow reach Engine.Execute(), this crashes.
+
+---
+
+### 2. Uninitialized List Properties in Config.cs (Lines 28-29)
+File: src/Config.cs:28-29
+Issue: fixturePicks and excludeTeams are declared but never initialized:
+
+       public List<string> fixturePicks    { get; set;}  // Never initialized
+       public List<string> excludeTeams    { get; set;}  // Never initialized
+
+       These are only assigned in the ExecuteFixtureAnalysis intent block (lines 82-83).
+       If accessed for other intents, they would be null.
+
+Impact: Potential NullReferenceException if code evolves to access these outside fixture analysis.
+
+---
+
+### 3. Hardcoded Array Index Access in Standings.cs (Line 96)
+File: src/Model/FPL/Standings.cs:96
+Issue: Assumes picks array always has 16+ elements:
+
+       int managerElID = manager.GetPicks.picks[15].element;
+
+Impact: IndexOutOfRangeException if a manager's picks array is smaller than expected.
+
+---
+
+### 4. Empty Collection .Last() Call in Manager.cs (Lines 217, 221)
+File: src/Model/Manager.cs:217, 221
+Issue: Calls Last() without checking if collection is empty:
+
+       return _managerHistory.current.Last().bank;  // Line 217
+       return _managerHistory.current.Last().value; // Line 221
+
+Impact: InvalidOperationException if _managerHistory.current is empty.
+
+---
+
+### 5. Off-By-One in LoadFixtures Loop - AnalyserExportForAI.cs (Lines 20-23)
+File: src/Analysis/AnalyserExportForAI.cs:20-23
+Issue: Loop loads GW0 which doesn't exist:
+
+       int i = _config.gameweek +1;
+       while (i-- > 0) {          // Goes from gameweek+1 down to 1, then 0
+           await _fpl.LoadFixtures(i);  // Tries to load GW0 on final iteration
+       }
+
+Impact: Either API error or incorrect behavior when i reaches 0.
+
+---
+
+### 6. Null Dereference in Bootstrap.GetGameweek (Line 249)
+File: src/Model/FPL/Bootstrap.cs:249
+Issue: Returns null-forgiving operator but ret can genuinely be null:
+
+       return ret!;  // ret could be null if no event matches the id
+
+Impact: Misleading to callers who expect non-null, could cause downstream crashes.
+
+---
+
+
+## MEDIUM ISSUES (Logic Errors / Inconsistencies)
+
+### 7. Thread Safety Warning for Static StringBuilder
+File: src/Analysis/AnalyserBase.cs:8
+Issue: Static StringBuilder shared across all analyser instances:
+
+       protected static StringBuilder _sb = new StringBuilder();
+
+       This is not thread-safe if multiple analysers ever run concurrently.
+       Currently used in FixtureAnalyser._displayLine() inside Parallel.For context
+       (though actual usage appears to be outside the parallel block).
+
+Impact: Potential race condition / corrupted output if usage patterns change.
+
+---
+
+### 8. Stale DateTime in Fetcher.cs (Lines 44, 50)
+File: src/Fetcher.cs:44, 50
+Issue: Captures DateTime.Now before delay, then uses stale value after delay:
+
+       DateTime now = DateTime.Now;           // Line 44
+       if (now < _nextFetchStamp) {
+           // ... awaits delay ...
+       }
+       _nextFetchStamp = now.AddSeconds(...);  // Line 50 - uses stale 'now'
+
+       After the delay completes, 'now' is outdated. The next fetch stamp should
+       be calculated from the current time, not the time before the delay.
+
+Impact: Rate limiting may be slightly inaccurate (fetches could be more frequent than intended).
+
+---
+
+### 9. Singleton Overwrite Risk in FPLData.cs (Line 27)
+File: src/Model/FPLData.cs:27
+Issue: Instance is set in constructor, not protected against multiple instantiation:
+
+       public FPLData(string dataPath, string api) {
+           // ...
+           Instance = this;  // Overwrites any previous instance
+       }
+
+Impact: If FPLData is accidentally instantiated multiple times, previous Instance references
+        would still work but point to different data, causing subtle bugs.
+
+---
+
+### 10. Risk Flagged by Original Developer
+File: src/Analysis/AnalyserMiniLeagues.cs:168
+Issue: Comment explicitly warns about potential bug:
+
+       int totalManagers = _fpl.Managers.Count;  // this seems risky - what if we've loaded another league??
+
+       If multiple leagues are loaded, Managers dictionary would contain entries from all leagues,
+       making this count incorrect for per-league statistics.
+
+Impact: Incorrect statistics if multiple leagues are analyzed in same session.
+
+---
+
+### 11. Boundary Check Inconsistency in AnalyserExportForAI.cs (Line 16)
+File: src/Analysis/AnalyserExportForAI.cs:16
+Issue: Uses >= instead of > for boundary check:
+
+       if (_config.gameweek >=  _fpl.Bootstrap.events.Count) {
+
+       FPL gameweeks are 1-indexed. If events.Count is 38, GW38 should be valid,
+       but this check rejects it (38 >= 38 is true).
+
+Impact: Cannot export data for the final gameweek of the season.
+
+---
+
+### 12. Division Without Zero Check
+File: src/Analysis/AnalyserMiniLeagues.cs:210
+Issue: Division by list count without checking for empty list:
+
+       Console.WriteLine($"\nAverage hit: {totalHitPoints / (float) list.Count():0.00} pts");
+
+       While Utils.SafeDivide exists, it's not used here.
+
+Impact: DivideByZeroException if no managers are loaded (unlikely but possible edge case).
+
+---
+
+
+## MINOR ISSUES (Warnings / Code Quality)
+
+### 13. Unused Using Statement in Manager.cs (Line 2)
+File: src/Model/Manager.cs:2
+Issue: Unused import:
+
+       using System.Security.Cryptography.X509Certificates;
+
+       This namespace is never used in the file.
+
+Impact: Code clutter. No runtime effect.
+
+---
+
+### 14. Unreachable Code in Fetcher.cs (Line 78)
+File: src/Fetcher.cs:78
+Issue: Code after Environment.Exit is unreachable:
+
+       } catch (Exception e) {
+           Console.WriteLine($"error: {e.Message}");
+           Environment.Exit(-1);
+       }
+       return null;  // Unreachable
+
+Impact: No runtime effect but indicates incomplete error handling refactor.
+
+---
+
+### 15. Dictionary Key Existence Not Checked Before Access
+Multiple locations access dictionaries without checking key existence first:
+- AnalyserMiniLeagues.cs:69 - fpl.Managers[r.entry]
+- Standings.cs:69 - fpl.Managers[r.entry]
+- Various places use Find() which can return null
+
+Impact: KeyNotFoundException or NullReferenceException if data loading is incomplete.
+
+---
+
+
+## SUMMARY
+
+Critical Issues:   6  (potential crashes)
+Medium Issues:     6  (logic errors)
+Minor Issues:      3  (warnings/quality)
+
+Recommended Priority:
+1. Fix #5 (off-by-one in LoadFixtures loop) - likely immediate bug
+2. Fix #11 (boundary check) - prevents valid use case
+3. Fix #1, #2 (null handling) - defensive programming
+4. Address #10 (developer-flagged risk) - investigate scope
